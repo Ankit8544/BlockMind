@@ -3,4 +3,5 @@ __pycache__/
 *.pyc
 Flask test.ipynb
 Test.ipynb
+Power BII Rest API.ipynb
 *.db
