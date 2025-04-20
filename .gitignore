@@ -1,0 +1,6 @@
+.env
+__pycache__/
+*.pyc
+Flask test.ipynb
+Test.ipynb
+*.db
