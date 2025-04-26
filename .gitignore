@@ -2,6 +2,7 @@
 __pycache__/
 *.pyc
 Flask test.ipynb
-Test.ipynb
-Power BII Rest API.ipynb
+Microsoft-Graph-API-Test.ipynb
+Power BI Rest API.ipynb
+Azure-User.json
 *.db
