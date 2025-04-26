@@ -5,12 +5,14 @@ from io import BytesIO
 
 app = Flask(__name__)
 
-# Directory where the images will be temporarily stored
-UPLOAD_FOLDER = 'uploads'
+
+# Absolute path for the uploads directory
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
+
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
-# Set the folder for serving static files (images)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # This route will handle the upload and return the URL of the image
@@ -38,7 +40,7 @@ def upload_image():
 # ✅ Serve from /uploads/ route
 @app.route('/uploads/<filename>')
 def serve_uploaded_image(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    return send_from_directory(os.path.abspath(app.config['UPLOAD_FOLDER']), filename)
 
 if __name__ == '__main__':
     app.run(debug=True)
