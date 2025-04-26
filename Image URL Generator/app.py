@@ -28,15 +28,16 @@ def upload_image():
         img_file.write(image_content)
 
     # Generate the URL to access the image
-    image_url = f"/static/{image_filename}"
+    # ✅ Serving from /uploads/, not /static/
+    image_url = f"/uploads/{image_filename}"
 
     # Return the URL as a response
     return jsonify({"image_url": image_url})
 
 # This route serves the uploaded images
-@app.route('/static/<filename>')
-def serve_image(filename):
-    # Serve the image from the 'uploads' directory
+# ✅ Serve from /uploads/ route
+@app.route('/uploads/<filename>')
+def serve_uploaded_image(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 if __name__ == '__main__':
