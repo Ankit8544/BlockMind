@@ -15,6 +15,11 @@ if not os.path.exists(UPLOAD_FOLDER):
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
+@app.route('/test', methods=['GET'])
+def test_route():
+    print("Upload Folder Path:", os.path.abspath(app.config['UPLOAD_FOLDER']))
+    return "Flask app is running!"
+
 # This route will handle the upload and return the URL of the image
 @app.route('/upload_image', methods=['POST'])
 def upload_image():
