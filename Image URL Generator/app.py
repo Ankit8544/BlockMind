@@ -17,6 +17,7 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 @app.route('/')
 def index():
     return "Welcome to the Image Upload API!"
+
 @app.route('/health', methods=['GET'])
 def health_check():
     return "Healthy!"
