@@ -13,7 +13,7 @@ if not os.path.exists(UPLOAD_FOLDER):
 # Set the folder for serving static files (images)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-
+# This route will handle the upload and return the URL of the image
 @app.route('/upload_image', methods=['POST'])
 def upload_image():
     # Get the image content (binary data) from the request
@@ -28,17 +28,17 @@ def upload_image():
         img_file.write(image_content)
 
     # Generate the URL to access the image
+    # Assuming the app is deployed and publicly accessible
     image_url = f"/static/{image_filename}"
 
     # Return the URL as a response
     return jsonify({"image_url": image_url})
 
-
+# This route serves the uploaded images
 @app.route('/static/<filename>')
 def serve_image(filename):
     # Serve the image from the 'uploads' directory
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
-
 
 if __name__ == '__main__':
     app.run(debug=True)
