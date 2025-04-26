@@ -17,7 +17,7 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 @app.route('/upload_image', methods=['POST'])
 def upload_image():
     # Get the image content (binary data) from the request
-    image_content = request.files['image'].read()  # This is 'response.content'
+    image_content = request.data  # This will get the raw binary data sent in the request
 
     # Generate a unique filename to avoid conflicts
     image_filename = f"{uuid.uuid4()}.jpg"
@@ -28,7 +28,6 @@ def upload_image():
         img_file.write(image_content)
 
     # Generate the URL to access the image
-    # Assuming the app is deployed and publicly accessible
     image_url = f"/static/{image_filename}"
 
     # Return the URL as a response
