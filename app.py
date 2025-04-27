@@ -16,10 +16,10 @@ app = Flask(__name__)
 load_dotenv()
 
 # Azure App credentials
-CLIENT_ID = "183f41fa-e4bc-4ed0-b384-fc87fc1ca4ab" # os.getenv("CLIENT_ID")
-CLIENT_SECRET_VALUE = "0n-8Q~TaxuV81dY5QwJdsNksuvRKyQEwOgBRGb8c" # os.getenv("CLIENT_SECRET")
-TENANT_ID = "5eafb13a-8bcd-462a-9e16-58810b6f2460" # os.getenv("TENANTID")
-GRAPH_API_SCOPE = "https://graph.microsoft.com/.default" # os.getenv("GRAPH_API_SCOPE")
+CLIENT_ID = os.getenv("CLIENT_ID")
+CLIENT_SECRET_VALUE = os.getenv("CLIENT_SECRET")
+TENANT_ID = os.getenv("TENANTID")
+GRAPH_API_SCOPE = os.getenv("GRAPH_API_SCOPE")
 
 # Google Gemini API credentials
 GEMINI_API_KEYS = [
