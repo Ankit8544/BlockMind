@@ -244,7 +244,12 @@ def send_telegram_message(chat_id, message):
         print(f"❌ Telegram API Error: {e}")
         return {"error": str(e)}
 
-# Flask route to handle GET requests
+# Flask route to handle the home page
+@app.route('/')
+def home():
+    return "🚀 App is live and running!"
+
+# Flask route to handle the /getdata endpoint
 @app.route('/getdata', methods=['GET'])
 def getdata():
     
