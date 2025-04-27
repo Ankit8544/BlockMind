@@ -32,6 +32,9 @@ GEMINI_API_KEYS = [
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
+# Imgur API credentials
+IMGUR_CLIENT_ID = os.getenv("IMGUR_CLIENT_ID")
+
 # Set the timezone to UTC+5:30
 ist = pytz.timezone('Asia/Kolkata')
 
@@ -175,24 +178,27 @@ def get_user_profile_image():
             f.write(Graph_API_User_Profile_Image_response.content)
 
         # Step 2: Upload to Imgur
-        imgur_client_id = "b3a6932a9a7284b"
-        headers_imgur = {"Authorization": f"Client-ID {imgur_client_id}"}
+        headers_imgur = {"Authorization": f"Client-ID {IMGUR_CLIENT_ID}"}
 
-        retries = 3
+        retries = 5  # number of retries
+        backoff = 2  # start with 2 seconds
         for attempt in range(retries):
             with open("profile_image.jpg", "rb") as img:
                 files = {'image': img}
                 upload = requests.post("https://api.imgur.com/3/upload", headers=headers_imgur, files=files)
             
             if upload.status_code == 200:
-                image_url = upload.json()['data']['link']
-                return image_url
+                return upload.json()['data']['link']
+            elif upload.status_code == 429:
+                print(f"Rate limit hit (attempt {attempt + 1}), retrying in {backoff} seconds...")
+                time.sleep(backoff)
+                backoff *= 2  # exponential backoff
             else:
-                print(f"Upload failed (attempt {attempt + 1}), retrying in 5 seconds...")
-                print(upload.text)
-                time.sleep(5)
+                print(f"Upload failed with {upload.status_code}: {upload.text}")
+                break  # break for non-rate-limit errors
         else:
             print("Imgur upload ultimately failed after retries.")
+            return None
     else:
         print("Failed to download profile image:", Graph_API_User_Profile_Image_response.status_code)
         print(Graph_API_User_Profile_Image_response.text)
