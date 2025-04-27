@@ -4,5 +4,7 @@ __pycache__/
 Flask test.ipynb
 Microsoft-Graph-API-Test.ipynb
 Power BI Rest API.ipynb
-Azure-User.json
+Response.json
+UserData.ipynb
+UserData.ipynb
 *.db
