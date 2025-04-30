@@ -282,8 +282,7 @@ def getdata():
     # Create a proper DataFrame from the UserDetail dictionary
     User_Detail_df = pd.DataFrame([UserDetail])
 
-    prompt = f"""
-    Can you find the top 10 latest and best technologies that help {UserDetail['Job Title']} professionals to work faster, more efficiently, and effectively?
+    prompt = f"""Can you find the top 10 latest and best technologies that help {UserDetail['Job Title']} professionals to work faster, more efficiently, and effectively?
 
     Please give me the direct JSON response containing an array of objects, with each object having the following fields:
     1. Technology Name
