@@ -294,7 +294,7 @@ def getdata():
     7. Shote Note about the Technology in 200 characters
 
     For example:
-    {
+    {{
     "Technology Name": "AutoML Platforms",
     "Tools": ["Google AutoML", "H2O.ai", "DataRobot", "AWS SageMaker Autopilot", "PyCaret"],
     "Why": "Automates tedious tasks like feature engineering, model selection, and hyperparameter tuning.",
@@ -302,12 +302,14 @@ def getdata():
     "Article URL": "https://cloud.google.com/automl",
     "Article Thumbnail URL": "https://cloud.google.com/images/products/machine-learning/automl.svg",
     "Note": "AutoML platforms streamline the ML pipeline, allowing faster and easier model creation with minimal coding or expertise required."
-    }
+    }}
 
 
     And All all the tools in the list should be in the same format as above.
     
-    URL of the blog/article in which the technology is explained well and thumbnail URL should also be related to the same technology
+    Provide blog/article URL in which the technology is explained well and thumbnail URL should also be related to the same technology like medium or any other blog.
+    The thumbnail URL should be a valid image URL and the blog/article URL should be a valid URL.
+    And Make sure that the URLs are not expired like they don't return 404 or any other error.
     And yes both the URLs should be valid and in working condition.
 
     just a json so that I can easily parse it in my code without any formating.
