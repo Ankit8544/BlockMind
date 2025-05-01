@@ -281,66 +281,12 @@ def getdata():
     
     # Create a proper DataFrame from the UserDetail dictionary
     User_Detail_df = pd.DataFrame([UserDetail])
-
-    prompt = f"""Can you find the top 10 latest and best technologies that help {UserDetail['Job Title']} professionals to work faster, more efficiently, and effectively?
-
-    Please give me the direct JSON response containing an array of objects, with each object having the following fields:
-    1. Technology Name
-    2. Tools Associated with the Technology
-    3. Why to Use
-    4. Their Impact
-    5. Article/Blog URL 
-    6. Thumbnail URL of the Article/Blog
-    7. Shote Note about the Technology in 200 characters
-
-    For example:
-    {{
-    "Technology Name": "AutoML Platforms",
-    "Tools": ["Google AutoML", "H2O.ai", "DataRobot", "AWS SageMaker Autopilot", "PyCaret"],
-    "Why": "Automates tedious tasks like feature engineering, model selection, and hyperparameter tuning.",
-    "Impact": "Significantly reduces model development time, democratizes AI by enabling non-experts to build models.",
-    "Article URL": "https://cloud.google.com/automl",
-    "Article Thumbnail URL": "https://cloud.google.com/images/products/machine-learning/automl.svg",
-    "Note": "AutoML platforms streamline the ML pipeline, allowing faster and easier model creation with minimal coding or expertise required."
-    }}
-
-
-    And All all the tools in the list should be in the same format as above.
-    
-    Provide blog/article URL in which the technology is explained well and thumbnail URL should also be related to the same technology like medium or any other blog.
-    The thumbnail URL should be a valid image URL and the blog/article URL should be a valid URL.
-    And Make sure that the URLs are not expired like they don't return 404 or any other error.
-    And yes both the URLs should be valid and in working condition.
-
-    just a json so that I can easily parse it in my code without any formating.
-
-    Please generate the JSON response with this data and do not provide any additional information.
-    """
-
-    # Generate the response using Gemini AI
-    Gemini_response = Gemini(prompt)
-
-    # Remove the code block formatting and JSON tag from the response
-    if "```" in Gemini_response:
-        Gemini_response = Gemini_response.replace("```json", "").replace("```", "")
-
-    # Save the response to a JSON file
-    with open("Response.json", 'w', newline='', encoding='utf-8') as file:
-        file.write(Gemini_response)
-
-    # Read the JSON file to verify the content
-    with open('Response.json', 'r') as file:
-        Article_data = json.load(file)
-        
-    # Convert the JSON data to a DataFrame
-    Latest_Article_df = pd.DataFrame(Article_data)
     
     # Send the Gemini response to Telegram Bot
     # send_telegram_message(TELEGRAM_CHAT_ID, f"User Details:\n{UserDetail}")
 
     # Return both dataframes as a JSON response
     response = {
-        "Latest_Article": Latest_Article_df.to_dict(orient='records'),
         "User_Detail": User_Detail_df.to_dict(orient='records')
     }
     
