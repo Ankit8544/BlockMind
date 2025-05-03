@@ -317,7 +317,9 @@ def get_logs():
             lines = f.readlines()
 
         for line in lines:
+            line = line.strip()
             match = pattern.search(line)
+            
             if match and match.group("endpoint") == "/getdata":
                 dt = datetime.strptime(match.group("datetime"), "%d/%b/%Y:%H:%M:%S %z")
                 ua_str = match.group("user_agent")
