@@ -349,7 +349,7 @@ def get_logs():
                     }
                 })
 
-        return jsonify(log_entries[-20:])  # Last 20 entries
+        return jsonify(log_entries[-1:])  # Last one Entries
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
