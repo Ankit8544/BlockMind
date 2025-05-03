@@ -265,7 +265,7 @@ def log_request():
 # Flask route to handle the home page
 @app.route('/')
 def home():
-    return "🚀 App is live and running.....!"
+    return "🚀 App is live and running!"
 
 # Flask route to handle the /getdata endpoint
 @app.route('/getdata', methods=['GET'])
@@ -307,19 +307,8 @@ def getdata():
 
 @app.route('/getlogs')
 def get_logs():
-    import re
-    from datetime import datetime
-    from flask import jsonify
-    from user_agents import parse as parse_ua
-
     log_entries = []
-    pattern = re.compile(
-        r'(?P<ip>\S+) - - \[(?P<datetime>[^\]]+)\] '
-        r'"(?P<method>\S+) (?P<endpoint>\S+) HTTP/\d\.\d" '
-        r'(?P<status>\d{3}) (?P<size>\d+|-) '
-        r'"(?P<referrer>[^"]*)" "(?P<user_agent>[^"]+)"'
-    )
-
+    pattern = re.compile(r'(?P<ip>\S+) - - \[(?P<datetime>.+?)\] "(?P<method>\S+) (?P<endpoint>\S+) HTTP/\d\.\d" .* "(?P<user_agent>.+?)"')
     try:
         with open(LOG_FILE, 'r') as f:
             lines = f.readlines()
