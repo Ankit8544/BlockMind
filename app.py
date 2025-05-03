@@ -308,7 +308,15 @@ def getdata():
 @app.route('/getlogs')
 def get_logs():
     log_entries = []
-    pattern = re.compile(r'(?P<ip>\S+) - - \[(?P<datetime>.+?)\] "(?P<method>\S+) (?P<endpoint>\S+) HTTP/\d\.\d" .* "(?P<user_agent>.+?)"')
+
+    # Updated regex to capture status code and response size
+    pattern = re.compile(
+        r'(?P<ip>\S+) - - \[(?P<datetime>.+?)\] '
+        r'"(?P<method>\S+) (?P<endpoint>\S+) HTTP/\d\.\d" '
+        r'(?P<status>\d{3}) (?P<size>\S+) '
+        r'"(?:.*?)" "(?P<user_agent>.+?)"'
+    )
+
     try:
         with open(LOG_FILE, 'r') as f:
             lines = f.readlines()
@@ -325,6 +333,8 @@ def get_logs():
                     "ip": match.group("ip"),
                     "endpoint": match.group("endpoint"),
                     "method": match.group("method"),
+                    "status_code": int(match.group("status")),
+                    "response_size": match.group("size"),
                     "user_agent": ua_str,
                     "device": {
                         "is_mobile": ua.is_mobile,
@@ -337,8 +347,11 @@ def get_logs():
                     }
                 })
 
-        return jsonify(log_entries[-20:])  # Last 20 entries
+        return jsonify(log_entries[-20:])  # Return last 20 matching entries
+
     except Exception as e:
+        # Optional: log to server console or file for debugging
+        print(f"Error reading logs: {e}")
         return jsonify({"error": str(e)}), 500
 
 # Run the Flask app
