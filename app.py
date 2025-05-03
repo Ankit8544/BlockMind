@@ -5,12 +5,19 @@ import json
 from datetime import datetime
 import pytz
 import time
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from dotenv import load_dotenv
 import os
 import google.generativeai as genai
+import logging
+import re
+from datetime import datetime
+from user_agents import parse as parse_ua
 
 app = Flask(__name__)
+
+LOG_FILE = 'access.log'
+logging.basicConfig(filename=LOG_FILE, level=logging.INFO)
 
 # Load environment variables
 load_dotenv()
@@ -250,6 +257,11 @@ def send_telegram_message(chat_id, message):
         print(f"❌ Telegram API Error: {e}")
         return {"error": str(e)}
 
+@app.before_request
+def log_request():
+    logging.info(f'{request.remote_addr} - - [{datetime.utcnow().strftime("%d/%b/%Y:%H:%M:%S +0000")}] '
+                 f'"{request.method} {request.path} HTTP/1.1" - "{request.user_agent}"')
+
 # Flask route to handle the home page
 @app.route('/')
 def home():
@@ -292,6 +304,42 @@ def getdata():
     
     # Convert to JSON and return
     return jsonify(response)
+
+@app.route('/getlogs')
+def get_logs():
+    log_entries = []
+    pattern = re.compile(r'(?P<ip>\S+) - - \[(?P<datetime>.+?)\] "(?P<method>\S+) (?P<endpoint>\S+) HTTP/\d\.\d" .* "(?P<user_agent>.+?)"')
+    try:
+        with open(LOG_FILE, 'r') as f:
+            lines = f.readlines()
+
+        for line in lines:
+            match = pattern.search(line)
+            if match and match.group("endpoint") == "/getdata":
+                dt = datetime.strptime(match.group("datetime"), "%d/%b/%Y:%H:%M:%S %z")
+                ua_str = match.group("user_agent")
+                ua = parse_ua(ua_str)
+
+                log_entries.append({
+                    "timestamp": dt.isoformat(),
+                    "ip": match.group("ip"),
+                    "endpoint": match.group("endpoint"),
+                    "method": match.group("method"),
+                    "user_agent": ua_str,
+                    "device": {
+                        "is_mobile": ua.is_mobile,
+                        "is_tablet": ua.is_tablet,
+                        "is_pc": ua.is_pc,
+                        "is_bot": ua.is_bot,
+                        "browser": ua.browser.family,
+                        "os": ua.os.family,
+                        "device_type": ua.device.family
+                    }
+                })
+
+        return jsonify(log_entries[-20:])  # Last 20 entries
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # Run the Flask app
 if __name__ == '__main__':
