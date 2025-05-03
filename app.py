@@ -307,8 +307,19 @@ def getdata():
 
 @app.route('/getlogs')
 def get_logs():
+    import re
+    from datetime import datetime
+    from flask import jsonify
+    from user_agents import parse as parse_ua
+
     log_entries = []
-    pattern = re.compile(r'(?P<ip>\S+) - - \[(?P<datetime>.+?)\] "(?P<method>\S+) (?P<endpoint>\S+) HTTP/\d\.\d" .* "(?P<user_agent>.+?)"')
+    pattern = re.compile(
+        r'(?P<ip>\S+) - - \[(?P<datetime>[^\]]+)\] '
+        r'"(?P<method>\S+) (?P<endpoint>\S+) HTTP/\d\.\d" '
+        r'(?P<status>\d{3}) (?P<size>\d+|-) '
+        r'"(?P<referrer>[^"]*)" "(?P<user_agent>[^"]+)"'
+    )
+
     try:
         with open(LOG_FILE, 'r') as f:
             lines = f.readlines()
@@ -325,6 +336,9 @@ def get_logs():
                     "ip": match.group("ip"),
                     "endpoint": match.group("endpoint"),
                     "method": match.group("method"),
+                    "status_code": int(match.group("status")),
+                    "response_size": int(match.group("size")) if match.group("size").isdigit() else None,
+                    "referrer": match.group("referrer"),
                     "user_agent": ua_str,
                     "device": {
                         "is_mobile": ua.is_mobile,
