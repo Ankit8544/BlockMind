@@ -257,10 +257,14 @@ def send_telegram_message(chat_id, message):
         print(f"❌ Telegram API Error: {e}")
         return {"error": str(e)}
 
-@app.before_request
-def log_request():
-    logging.info(f'{request.remote_addr} - - [{datetime.utcnow().strftime("%d/%b/%Y:%H:%M:%S +0000")}] '
-                 f'"{request.method} {request.path} HTTP/1.1" - "{request.user_agent}"')
+@app.after_request
+def log_request(response):
+    logging.info(
+        f'{request.remote_addr} - - [{datetime.utcnow().strftime("%d/%b/%Y:%H:%M:%S +0000")}] '
+        f'"{request.method} {request.path} HTTP/1.1" {response.status_code} {response.calculate_content_length() or "-"} '
+        f'"{request.referrer or "-"}" "{request.user_agent}"'
+    )
+    return response
 
 # Flask route to handle the home page
 @app.route('/')
