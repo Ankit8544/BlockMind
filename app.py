@@ -265,7 +265,7 @@ def log_request():
 # Flask route to handle the home page
 @app.route('/')
 def home():
-    return "🚀 App is live and running!"
+    return "🚀 App is live and running.....!"
 
 # Flask route to handle the /getdata endpoint
 @app.route('/getdata', methods=['GET'])
