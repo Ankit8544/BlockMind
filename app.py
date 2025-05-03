@@ -308,7 +308,10 @@ def getdata():
 @app.route('/getlogs')
 def get_logs():
     log_entries = []
-    pattern = re.compile(r'(?P<ip>\S+) - - \[(?P<datetime>.+?)\] "(?P<method>\S+) (?P<endpoint>\S+) HTTP/\d\.\d" .* "(?P<user_agent>.+?)"')
+    pattern = re.compile(
+        r'(?P<ip>\S+) - - \[(?P<datetime>[^\]]+)\] "(?P<method>\S+) (?P<endpoint>\S+) HTTP/\d\.\d" (?P<status>\d{3}) (?P<size>\d+|-) "(?P<referrer>[^"]*)" "(?P<user_agent>[^"]+)"'
+        )
+
     try:
         with open(LOG_FILE, 'r') as f:
             lines = f.readlines()
