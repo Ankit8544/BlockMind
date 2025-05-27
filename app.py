@@ -11,7 +11,7 @@ import os
 import google.generativeai as genai
 import logging
 import re
-from datetime import datetime
+import datetime
 from user_agents import parse as parse_ua
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
