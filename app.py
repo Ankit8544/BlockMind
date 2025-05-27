@@ -1,11 +1,11 @@
 import requests
 import pandas as pd
-import requests
 import json
 from datetime import datetime
 import pytz
 import time
 from flask import Flask, jsonify, request
+from flask_cors import CORS
 from dotenv import load_dotenv
 import os
 import google.generativeai as genai
@@ -13,8 +13,14 @@ import logging
 import re
 from datetime import datetime
 from user_agents import parse as parse_ua
+from pymongo.mongo_client import MongoClient
+from pymongo.server_api import ServerApi
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
 
+# Flask app setup
 app = Flask(__name__)
+CORS(app)
 
 LOG_FILE = 'access.log'
 logging.basicConfig(filename=LOG_FILE, level=logging.INFO)
@@ -42,8 +48,14 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 # Imgur API credentials
 IMGUR_CLIENT_ID = os.getenv("IMGUR_CLIENT_ID")
 
+# MongoDB Credentials
+MONGO_DB_USERNAME = os.getenv("MONGO_DB_USERNAME")
+MONGO_DB_PASSWORD = os.getenv("MONGO_DB_PASSWORD")
+
 # Set the timezone to UTC+5:30
 ist = pytz.timezone('Asia/Kolkata')
+
+
 
 # Authenticate with Azure AD and get an access token
 def get_access_token():
@@ -72,6 +84,207 @@ access_token = get_access_token()
 # Check if the access token is valid
 if not access_token:
         raise Exception("Failed to get access token")
+
+
+
+# Get Valid Gemini API Key
+def get_valid_api_key():
+    for key in GEMINI_API_KEYS:
+        try:
+            genai.configure(api_key=key)
+            genai.GenerativeModel('gemini-1.5-pro')  # Only configures the model without generating content
+            return key
+        except Exception as e:
+            print(f"API key {key} failed: {e}")
+    return None
+
+# Get a valid Gemini API key
+GEMINI_API_KEY = get_valid_api_key()
+
+# Check if a valid API key was found
+if not GEMINI_API_KEY:
+    raise Exception("No valid Gemini API key found.")
+
+# Configure Gemini AI
+def Gemini(user_message):
+    """Generates AI response using Gemini API."""
+    try:
+        model = genai.GenerativeModel('gemini-1.5-pro')
+        response = model.generate_content(user_message)
+        if response and hasattr(response, "text"):
+            return response.text.strip()
+        return "I'm unable to process that request right now."
+    except Exception as e:
+        print(f"❌ Gemini API Error: {e}")
+        return "🚫 AI is currently unavailable. Try again later."
+
+def AI_Generated_Answer(user_message):
+    gemini_result = Gemini(user_message)
+    
+    try:
+        result = gemini_result.replace('*', '')
+        return result
+    except:
+        print("⚠️ Unfortunatly, We are not able responed you right now.")
+        return "🚫 AI is currently unavailable. Try again later."
+
+
+
+# Configure Telegram Bot to send messages
+def send_telegram_message(chat_id, message):
+    """Sends a message to a specific Telegram user."""
+    try:
+        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+        data = {"chat_id": chat_id, "text": message, "parse_mode": "Markdown"}
+        response = requests.post(url, data=data)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Telegram API Error: {e}")
+        return {"error": str(e)}
+
+
+
+# Check if environment variables are set
+if not MONGO_DB_USERNAME or not MONGO_DB_PASSWORD:
+    raise ValueError("MongoDB credentials are not set in the environment variables.")
+
+# MongoDB connection setup
+def connect_to_mongo():
+    print("Connecting to MongoDB...")
+    uri = f"mongodb+srv://{MONGO_DB_USERNAME}:{MONGO_DB_PASSWORD}@cluster0.ou0xiys.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+    
+    try:
+        client = MongoClient(uri, server_api=ServerApi('1'))
+        client.admin.command('ping')
+        print("Pinged your deployment. You successfully connected to MongoDB!")
+        return client
+    except Exception as e:
+        print("MongoDB connection error:", e)
+        return None
+
+# Connect to MongoDB
+client = connect_to_mongo()
+
+# Access User Portfolio Coins DB Collection and return the collection
+def UserPortfolioCoin_Collection():
+    if client:
+        CryptoCoinsdb = client['CryptoCoins']
+        UserPortfolioCollection = CryptoCoinsdb['UserPortfolio']
+        return UserPortfolioCollection
+    else:
+        print("MongoDB client is None. Cannot access user portfolio collection.")
+        return None
+
+# Get User Portfolio Coins DB Collection Data in JSON format
+def get_user_portfolio_collection():
+    try:
+        UserPortfolioCollection = UserPortfolioCoin_Collection()
+        if UserPortfolioCollection:
+            data = []
+            for doc in UserPortfolioCollection.find():
+                doc['_id'] = str(doc['_id'])  # Convert ObjectId to string
+                data.append(doc)
+            return data
+        else:
+            print("User Portfolio Collection is None. Cannot retrieve data.")
+            return []
+    except Exception as e:
+        print(f"❌ Error retrieving user portfolio collection: {e}")
+        return []
+
+# Add Crypto Coin list from CoinGecko API in MongoDB
+def Fetch_CryptoCoinList():
+    try:
+        response = requests.get('https://api.coingecko.com/api/v3/coins/list', timeout=10)
+        CoinsList = response.json()
+
+        if not isinstance(CoinsList, list) or not CoinsList:
+            print("❌ Invalid or empty response received.")
+            return []
+
+        CryptoCoinsdb = client['CryptoCoins']
+        CoinsListcollection = CryptoCoinsdb['CoinsList']
+
+        try:
+            result = CoinsListcollection.insert_many(CoinsList)
+            print(f"✅ Inserted {len(result.inserted_ids)} documents into the collection.")
+        except Exception as e:
+            print("❌ Failed to insert data:", e)
+
+        return CoinsList
+
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Error fetching coin list: {e}")
+        return []
+
+# Function to get coin list from MongoDB
+def CryptoCoinList():
+    if client:
+        CryptoCoinsdb = client['CryptoCoins']
+        CoinsListcollection = CryptoCoinsdb['CoinsList']
+        
+        # Load all coins without _id field
+        CoinsList = list(CoinsListcollection.find({}, {'_id': 0}))
+        if not CoinsList:
+            print("No coins found in the collection.")
+            return []
+        print(f"Found {len(CoinsList)} coins in the collection.")
+        return CoinsList
+    
+    else:
+        print("MongoDB client is None. Cannot retrieve coin list.")
+        return []
+
+def start_scheduler():
+    try:
+        # Check if the client is connected
+        scheduler = BackgroundScheduler()
+        
+        # Schedule job every day at 21:00 (9 PM)
+        trigger = CronTrigger(hour=21, minute=0)
+        scheduler.add_job(Fetch_CryptoCoinList, trigger=trigger)
+        
+        scheduler.start()
+        print("📅 Scheduler started to run `get_coin_list` daily at 9 PM.")
+    except Exception as e:
+        print(f"❌ Failed to start scheduler: {e}")
+
+scheduler_started = False
+
+# Function to validate crypto symbol and name
+def is_valid_crypto_symbol(symbol, coin_name=None):
+    if not symbol or not isinstance(symbol, str):
+        return "invalid_input"
+
+    symbol = symbol.lower().strip()
+    coin_name = coin_name.lower().strip() if coin_name and isinstance(coin_name, str) else None
+
+    try:
+        CoinsList = CryptoCoinList()
+
+        if not CoinsList:
+            return "local_data_empty"
+
+        # Match coin by name
+        name_matched_coins = [coin for coin in CoinsList if coin.get('name', '').lower() == coin_name]
+
+        if not name_matched_coins:
+            return "name_not_found"
+
+        # Check for matching symbol among name-matched coins
+        for coin in name_matched_coins:
+            if coin.get('symbol', '').lower() == symbol:
+                return "valid"
+
+        return "symbol_mismatch"
+
+    except Exception as e:
+        print("❌ Error accessing local database:", e)
+        return "db_error"
+
+
+
 
 # Get Latest User Princple Name From the Report/Dashboard using My Flask API
 def get_latest_user_principal_name_from_api():
@@ -217,49 +430,7 @@ def get_user_profile_image():
 # Get User Profile Image
 UserProfileImage = get_user_profile_image()
 
-# Get Valid Gemini API Key
-def get_valid_api_key():
-    for key in GEMINI_API_KEYS:
-        try:
-            genai.configure(api_key=key)
-            genai.GenerativeModel('gemini-1.5-pro')  # Only configures the model without generating content
-            return key
-        except Exception as e:
-            print(f"API key {key} failed: {e}")
-    return None
 
-# Get a valid Gemini API key
-GEMINI_API_KEY = get_valid_api_key()
-
-# Check if a valid API key was found
-if not GEMINI_API_KEY:
-    raise Exception("No valid Gemini API key found.")
-
-# Configure Gemini AI
-def Gemini(user_message):
-    """Generates AI response using Gemini API."""
-    try:
-        model = genai.GenerativeModel('gemini-1.5-pro')
-        response = model.generate_content(user_message)
-        if response and hasattr(response, "text"):
-            return response.text.strip()
-        return "I'm unable to process that request right now."
-    except Exception as e:
-        print(f"❌ Gemini API Error: {e}")
-        return "🚫 AI is currently unavailable. Try again later."
-
-# Configure Telegram Bot to send messages
-def send_telegram_message(chat_id, message):
-    """Sends a message to a specific Telegram user."""
-    try:
-        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-        data = {"chat_id": chat_id, "text": message, "parse_mode": "Markdown"}
-        response = requests.post(url, data=data)
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        print(f"❌ Telegram API Error: {e}")
-        return {"error": str(e)}
 
 @app.after_request
 def log_request(response):
@@ -274,6 +445,93 @@ def log_request(response):
 @app.route('/')
 def home():
     return "🚀 App is live and running!"
+
+@app.route('/receive-user-portfolio-coin', methods=['POST'])
+def receive_user_portfolio_coin():
+    try:
+        data = request.json
+
+        # Required fields
+        required_fields = ["User Mail", "Name of Coin", "Coin Symbol", "Purchase Date"]
+
+        missing_fields = []
+        blank_fields = []
+
+        for field in required_fields:
+            if field not in data:
+                missing_fields.append(field)
+            elif str(data[field]).strip() == "":
+                blank_fields.append(field)
+
+        # Return specific error messages if any issues
+        if missing_fields or blank_fields:
+            errors = []
+            if missing_fields:
+                errors.append(f"Missing fields: {', '.join(missing_fields)}")
+            if blank_fields:
+                errors.append(f"Blank fields: {', '.join(blank_fields)}")
+            return jsonify({
+                "success": False,
+                "message": " | ".join(errors)
+            }), 200
+
+        # Validate coin symbol and name
+        coin_symbol = data['Coin Symbol']
+        coin_name = data['Name of Coin']
+        validation_result = is_valid_crypto_symbol(coin_symbol, coin_name)
+
+        if validation_result == "name_not_found":
+            return jsonify({
+                "success": 'False',
+                "message": "No coin available with this name"
+            }), 200
+
+        elif validation_result == "symbol_mismatch":
+            return jsonify({
+                "success": 'False',
+                "message": "Symbol not aligned with the name"
+            }), 200
+
+        elif validation_result != "valid":
+            return jsonify({
+                "success": 'False',
+                "message": "Coin validation failed due to API or network error"
+            }), 200
+
+        # Convert string date to datetime object
+        try:
+            purchase_date_str = data['Purchase Date']
+            try:
+                parsed_date = datetime.datetime.strptime(purchase_date_str, "%Y-%m-%d")
+            except ValueError:
+                parsed_date = datetime.datetime.strptime(purchase_date_str, "%m/%d/%Y")
+            data['Purchase Date'] = parsed_date
+        except Exception:
+            return jsonify({
+                "success": 'False',
+                "message": "Invalid date format. Use YYYY-MM-DD or MM/DD/YYYY."
+            }), 200
+
+        # Optional debug
+        print("Final data to insert:", data)
+        
+        UserPortfolioCollection = UserPortfolioCoin_Collection()
+
+        # Insert into MongoDB
+        result = UserPortfolioCollection.insert_one(data)
+        print("Inserted document ID:", result.inserted_id)
+
+        return jsonify({
+            "success": 'True',
+            "message": "Crypto investment data saved successfully.",
+            "id": str(result.inserted_id)
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            "success": 'False',
+            "message": str(e)
+        }), 200
 
 # Flask route to handle the /getdata endpoint
 @app.route('/getdata', methods=['GET'])
@@ -356,6 +614,13 @@ def get_logs():
         return jsonify(log_entries[-1:])  # Last one Entries
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+# Initialize the scheduler in the app context
+with app.app_context():
+    if not scheduler_started:
+        print("🚀 Initializing scheduler in app context...")
+        start_scheduler()
+        scheduler_started = True
 
 # Run the Flask app
 if __name__ == '__main__':
