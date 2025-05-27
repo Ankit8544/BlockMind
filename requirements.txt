@@ -6,3 +6,7 @@ pytz
 google-generativeai
 user-agents
 gunicorn
+flask-cors
+pymongo
+certifi
+APScheduler
