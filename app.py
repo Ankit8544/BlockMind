@@ -289,6 +289,8 @@ def is_valid_crypto_symbol(symbol, coin_name=None):
 # Get Latest User Princple Name From the Report/Dashboard using My Flask API
 def get_latest_user_principal_name_from_api():
     
+    from datetime import datetime
+    
     # URL for GET request to view stored user data
     Flask_API_URL = 'https://userprofile-ezcl.onrender.com/api/view_data'
     
