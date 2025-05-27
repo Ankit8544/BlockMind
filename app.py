@@ -500,17 +500,29 @@ def receive_user_portfolio_coin():
 
         # Convert string date to datetime object
         try:
+            print("Step 1: Attempting to retrieve 'Purchase Date' from input data...")
             purchase_date_str = data['Purchase Date']
+            print(f"Step 2: 'Purchase Date' string received: {purchase_date_str}")
+
             try:
+                print("Step 3: Trying to parse date using format YYYY-MM-DD...")
                 parsed_date = datetime.datetime.strptime(purchase_date_str, "%Y-%m-%d")
+                print(f"Step 4: Successfully parsed date (YYYY-MM-DD): {parsed_date}")
             except ValueError:
+                print("Step 5: Failed to parse with YYYY-MM-DD. Trying MM/DD/YYYY format...")
                 parsed_date = datetime.datetime.strptime(purchase_date_str, "%m/%d/%Y")
+                print(f"Step 6: Successfully parsed date (MM/DD/YYYY): {parsed_date}")
+
             data['Purchase Date'] = parsed_date
-        except Exception:
+            print(f"Step 7: Final parsed date stored in data: {data['Purchase Date']}")
+
+        except Exception as e:
+            print(f"Step 8: Exception occurred while parsing date: {str(e)}")
             return jsonify({
-                "success": 'False',
+                "success": False,
                 "message": "Invalid date format. Use YYYY-MM-DD or MM/DD/YYYY."
             }), 200
+
 
         # Optional debug
         print("Final data to insert:", data)
