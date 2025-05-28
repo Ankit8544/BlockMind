@@ -305,6 +305,9 @@ def get_latest_user_principal_name_from_api():
         # Extract the latest user principal name and date
         
         res = Flask_API_response[-1]
+        
+        print("Latest User Principal Name:", res['user_email'])
+        print("Latest User Timestamp:", res['timestamp'])
 
         # Parse the timestamp
         utc_time = datetime.strptime(res['timestamp'][:26], "%Y-%m-%dT%H:%M:%S.%f")
