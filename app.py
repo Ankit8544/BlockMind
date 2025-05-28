@@ -440,7 +440,10 @@ def log_request(response):
 # Flask route to handle the home page
 @app.route('/')
 def home():
-    return "🚀 App is live and running!"
+    try:
+        return "🚀 App is live and running!"
+    except Exception as e:
+        return jsonify({"error": f"500 Error: {str(e)}"}), 500
 
 @app.route('/receive-user-portfolio-coin', methods=['POST'])
 def receive_user_portfolio_coin():
