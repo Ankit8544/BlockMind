@@ -306,17 +306,10 @@ def get_latest_user_principal_name_from_api():
         
         print("Latest User Principal Name:", res['user_email'])
         print("Latest User Timestamp:", res['timestamp'])
-
-        # Parse the timestamp
-        utc_time = datetime.strptime(res['timestamp'][:26], "%Y-%m-%dT%H:%M:%S.%f")
-        utc_time = utc_time.replace(tzinfo=pytz.UTC)
-
-        # Convert to IST
-        ist_time = utc_time.astimezone(ist)
-
+        
         latest_user = {
             "user_email": res['user_email'],
-            "timestamp": ist_time.strftime("%Y-%m-%d %H:%M:%S")
+            "timestamp": res['timestamp']
         }
         
         return latest_user
