@@ -443,8 +443,8 @@ def home():
     try:
         return "🚀 App is live and running!"
     except Exception as e:
-        print(f"❌ Error in home route: {str(e)}")
-        return jsonify({"error": f"500 Error: {str(e)}"}), 500
+        print("❌ Error in / route:", str(e))
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/receive-user-portfolio-coin', methods=['POST'])
 def receive_user_portfolio_coin():
@@ -633,6 +633,13 @@ with app.app_context():
         print("🚀 Initializing scheduler in app context...")
         start_scheduler()
         scheduler_started = True
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    import traceback
+    print("🚨 Uncaught Exception:")
+    traceback.print_exc()
+    return jsonify({"error": str(e)}), 500
 
 # Run the Flask app
 if __name__ == '__main__':
