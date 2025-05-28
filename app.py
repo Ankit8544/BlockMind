@@ -286,8 +286,6 @@ def is_valid_crypto_symbol(symbol, coin_name=None):
 
 
 
-from datetime import datetime
-
 # Get Latest User Princple Name From the Report/Dashboard using My Flask API
 def get_latest_user_principal_name_from_api():
     
@@ -436,8 +434,6 @@ def get_user_profile_image():
 UserProfileImage = get_user_profile_image()
 
 
-
-import datetime
 
 @app.after_request
 def log_request(response):
