@@ -443,6 +443,7 @@ def home():
     try:
         return "🚀 App is live and running!"
     except Exception as e:
+        print(f"❌ Error in home route: {str(e)}")
         return jsonify({"error": f"500 Error: {str(e)}"}), 500
 
 @app.route('/receive-user-portfolio-coin', methods=['POST'])
