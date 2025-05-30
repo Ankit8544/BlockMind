@@ -11,12 +11,9 @@ import os
 import google.generativeai as genai
 import logging
 import re
-import datetime
 from user_agents import parse as parse_ua
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
 
 # Flask app setup
 app = Flask(__name__)
@@ -55,8 +52,6 @@ MONGO_DB_PASSWORD = os.getenv("MONGO_DB_PASSWORD")
 # Set the timezone to UTC+5:30
 ist = pytz.timezone('Asia/Kolkata')
 
-
-
 # Authenticate with Azure AD and get an access token
 def get_access_token():
 
@@ -84,8 +79,6 @@ access_token = get_access_token()
 # Check if the access token is valid
 if not access_token:
         raise Exception("Failed to get access token")
-
-
 
 # Get Valid Gemini API Key
 def get_valid_api_key():
@@ -128,8 +121,6 @@ def AI_Generated_Answer(user_message):
         print("⚠️ Unfortunatly, We are not able responed you right now.")
         return "🚫 AI is currently unavailable. Try again later."
 
-
-
 # Configure Telegram Bot to send messages
 def send_telegram_message(chat_id, message):
     """Sends a message to a specific Telegram user."""
@@ -142,8 +133,6 @@ def send_telegram_message(chat_id, message):
     except requests.exceptions.RequestException as e:
         print(f"❌ Telegram API Error: {e}")
         return {"error": str(e)}
-
-
 
 # Check if environment variables are set
 if not MONGO_DB_USERNAME or not MONGO_DB_PASSWORD:
@@ -192,99 +181,6 @@ def get_user_portfolio_collection():
     except Exception as e:
         print(f"❌ Error retrieving user portfolio collection: {e}")
         return []
-
-# Add Crypto Coin list from CoinGecko API in MongoDB
-def Fetch_CryptoCoinList():
-    try:
-        response = requests.get('https://api.coingecko.com/api/v3/coins/list', timeout=10)
-        CoinsList = response.json()
-
-        if not isinstance(CoinsList, list) or not CoinsList:
-            print("❌ Invalid or empty response received.")
-            return []
-
-        CryptoCoinsdb = client['CryptoCoins']
-        CoinsListcollection = CryptoCoinsdb['CoinsList']
-
-        try:
-            result = CoinsListcollection.insert_many(CoinsList)
-            print(f"✅ Inserted {len(result.inserted_ids)} documents into the collection.")
-        except Exception as e:
-            print("❌ Failed to insert data:", e)
-
-        return CoinsList
-
-    except requests.exceptions.RequestException as e:
-        print(f"❌ Error fetching coin list: {e}")
-        return []
-
-# Function to get coin list from MongoDB
-def CryptoCoinList():
-    if client:
-        CryptoCoinsdb = client['CryptoCoins']
-        CoinsListcollection = CryptoCoinsdb['CoinsList']
-        
-        # Load all coins without _id field
-        CoinsList = list(CoinsListcollection.find({}, {'_id': 0}))
-        if not CoinsList:
-            print("No coins found in the collection.")
-            return []
-        print(f"Found {len(CoinsList)} coins in the collection.")
-        return CoinsList
-    
-    else:
-        print("MongoDB client is None. Cannot retrieve coin list.")
-        return []
-
-def start_scheduler():
-    try:
-        # Check if the client is connected
-        scheduler = BackgroundScheduler()
-        
-        # Schedule job every day at 21:00 (9 PM)
-        trigger = CronTrigger(hour=21, minute=0)
-        scheduler.add_job(Fetch_CryptoCoinList, trigger=trigger)
-        
-        scheduler.start()
-        print("📅 Scheduler started to run `get_coin_list` daily at 9 PM.")
-    except Exception as e:
-        print(f"❌ Failed to start scheduler: {e}")
-
-scheduler_started = False
-
-# Function to validate crypto symbol and name
-def is_valid_crypto_symbol(symbol, coin_name=None):
-    if not symbol or not isinstance(symbol, str):
-        return "invalid_input"
-
-    symbol = symbol.lower().strip()
-    coin_name = coin_name.lower().strip() if coin_name and isinstance(coin_name, str) else None
-
-    try:
-        CoinsList = CryptoCoinList()
-
-        if not CoinsList:
-            return "local_data_empty"
-
-        # Match coin by name
-        name_matched_coins = [coin for coin in CoinsList if coin.get('name', '').lower() == coin_name]
-
-        if not name_matched_coins:
-            return "name_not_found"
-
-        # Check for matching symbol among name-matched coins
-        for coin in name_matched_coins:
-            if coin.get('symbol', '').lower() == symbol:
-                return "valid"
-
-        return "symbol_mismatch"
-
-    except Exception as e:
-        print("❌ Error accessing local database:", e)
-        return "db_error"
-
-
-
 
 # Get Latest User Princple Name From the Report/Dashboard using My Flask API
 def get_latest_user_principal_name_from_api():
@@ -425,8 +321,6 @@ def get_user_profile_image():
 
 # Get User Profile Image
 UserProfileImage = get_user_profile_image()
-
-
 
 @app.after_request
 def log_request(response):
@@ -627,13 +521,7 @@ def get_logs():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# Initialize the scheduler in the app context
-with app.app_context():
-    if not scheduler_started:
-        print("🚀 Initializing scheduler in app context...")
-        start_scheduler()
-        scheduler_started = True
-
+# Handle uncaught exceptions globally
 @app.errorhandler(Exception)
 def handle_exception(e):
     import traceback
