@@ -521,14 +521,6 @@ def get_logs():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# Handle uncaught exceptions globally
-@app.errorhandler(Exception)
-def handle_exception(e):
-    import traceback
-    print("🚨 Uncaught Exception:")
-    traceback.print_exc()
-    return jsonify({"error": str(e)}), 500
-
 # Run the Flask app
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
