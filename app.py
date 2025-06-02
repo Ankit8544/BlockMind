@@ -127,15 +127,18 @@ def get_user_portfolio_data():
         if client:
             CryptoCoinsdb = client['CryptoCoins']
             UserPortfolioCollection = CryptoCoinsdb['UserPortfolio']
-
-            # Retrieve all documents from the collection and store them in a dict
-            Assets = {}
-            for doc in UserPortfolioCollection.find():
-                doc_id = str(doc['_id'])  # Convert ObjectId to string
-                doc['_id'] = doc_id
-                Assets[doc_id] = doc
-
-            return Assets
+            if UserPortfolioCollection is not None:
+                print("User Portfolio Collection is connected successfully.")
+                # Retrieve all documents from the collection and store them in a dict
+                Assets = []
+                for doc in UserPortfolioCollection.find():
+                    doc['_id'] = str(doc['_id'])  # Convert ObjectId to string
+                    Assets.append(doc)
+                print(f"Retrieved {len(Assets)} assets from User Portfolio Collection.")
+                return Assets
+            else:
+                print("User Portfolio Collection is None. Cannot retrieve data.")
+                return {}
         else:
             print("MongoDB client is None. Cannot access user portfolio collection.")
             return {}
@@ -149,21 +152,25 @@ def get_user_meta_data():
         if client:
             CryptoCoinsdb = client['CryptoCoins']
             UserMetaCollection = CryptoCoinsdb['UserMeta']
-
-            # Retrieve all documents from the collection and store them in a dict
-            Metadata = {}
-            for doc in UserMetaCollection.find():
-                doc_id = str(doc['_id'])  # Convert ObjectId to string
-                doc['_id'] = doc_id
-                Metadata[doc_id] = doc
-
-            return Metadata
+            if UserMetaCollection is not None:
+                print("User Meta Collection is connected successfully.")
+                # Retrieve all documents from the collection and store them in a dict
+                Metadata = []
+                for doc in UserMetaCollection.find():
+                    doc['_id'] = str(doc['_id'])  # Convert ObjectId to string
+                    Metadata.append(doc)
+                print(f"Retrieved {len(Metadata)} metadata entries from User Meta Collection.")
+                return Metadata
+            else:
+                print("User Meta Collection is None. Cannot retrieve data.")
+                return {}
         else:
             print("MongoDB client is None. Cannot access user meta collection.")
             return {}
     except Exception as e:
         print(f"❌ Error retrieving user meta collection: {e}")
         return {}
+
 
 @app.after_request
 def log_request(response):
@@ -187,8 +194,6 @@ def home():
 @app.route('/getdata', methods=['GET'])
 def getdata():
 
-    
-    
     # Send the Gemini response to Telegram Bot
     # send_telegram_message(TELEGRAM_CHAT_ID, f"User Details:\n{UserDetail}")
 
