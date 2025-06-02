@@ -151,7 +151,7 @@ def get_user_meta_data():
     try:
         if client:
             CryptoCoinsdb = client['CryptoCoins']
-            UserMetaCollection = CryptoCoinsdb['UserMeta']
+            UserMetaCollection = CryptoCoinsdb['UserMetadata']
             if UserMetaCollection is not None:
                 print("User Meta Collection is connected successfully.")
                 # Retrieve all documents from the collection and store them in a dict
