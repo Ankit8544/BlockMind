@@ -14,10 +14,11 @@ import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import random
 from cachetools import TTLCache
+from MongoDB_Connection import get_coin_ids
 
 pd.options.mode.chained_assignment = None
 
-COINGECKO_API_URL = os.getenv("COINGECKO_API_URL")
+COINGECKO_API_URL = "https://api.coingecko.com/api/v3"
 
 TWITTER_API_KEY = os.getenv("TWITTER_API_KEY")
 TWITTER_API_SECRET = os.getenv("TWITTER_API_SECRET")
@@ -38,14 +39,14 @@ twitter_client = tweepy.Client(bearer_token=TWITTER_BEARER_TOKEN)
 cache = TTLCache(maxsize=100, ttl=300)  # Store 100 results for 5 minutes
 
 # Coins you want to fetch data for
-coin_ids = ["dogecoin", "shiba-inu", "pepe"]  # Replace with your list
+coin_ids = get_coin_ids()  # Replace with your list
 
 # Load crypto analysis data
 def load_data():
     try:
         print("Loading data...")
         df = get_specific_coin_data(coin_ids)
-        print("✅Data loaded successfully through Filtering procress of finding Stable meme coins \.")
+        print("✅Data Fetched successfully through Coingecko.")
         if df is None or df.empty:
             raise ValueError("get_crypto_data() returned an empty DataFrame.")
         return df
@@ -193,7 +194,7 @@ def get_reddit_sentiment(query="meme coin", limit=50):
 # Full Analysis
 def Analysis():
     global df
-    print("Data Loaded Successfully")
+    print("Starting full analysis...")
 
     # Select the Coin ID column and convert it to a list
     crypto_Ids = df['Coin ID'].tolist()
@@ -202,7 +203,7 @@ def Analysis():
     crypto_analysis_dict = {}
 
     for Crypto_Id in crypto_Ids:
-        url = f"{COINGECKO_API_URL}/coins/{Crypto_Id}/market_chart"
+        url = f"https://api.coingecko.com/api/v3/coins/{Crypto_Id}/market_chart"
         params = {'vs_currency': 'usd', 'days': '365', 'interval': 'daily'}
 
         data = None
@@ -326,6 +327,5 @@ def Analysis():
     )
 
     print("All analysis completed successfully ✅")
-
     return df
 
