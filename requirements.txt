@@ -13,3 +13,4 @@ APScheduler
 numpy
 ta
 tweepy
+praw
