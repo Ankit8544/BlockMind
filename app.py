@@ -47,6 +47,10 @@ MONGO_DB_PASSWORD = os.getenv("MONGO_DB_PASSWORD")
 # Set the timezone to UTC+5:30
 ist = pytz.timezone('Asia/Kolkata')
 
+# Load Crypto Data from Analysis module and convert to dictionary
+df = Analysis()
+Crpto_Data = df.to_dict(orient='records')
+
 # Get Valid Gemini API Key
 def get_valid_api_key():
     for key in GEMINI_API_KEYS:
@@ -193,9 +197,6 @@ def home():
 # Flask route to handle the /getdata endpoint
 @app.route('/getdata', methods=['GET'])
 def getdata():
-    
-    df = Analysis()
-    Crpto_Data = df.to_dict(orient='records')
 
     # Send the Gemini response to Telegram Bot
     # send_telegram_message(TELEGRAM_CHAT_ID, f"User Details:\n{UserDetail}")
