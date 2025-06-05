@@ -8,9 +8,6 @@ COINGECKO_API_URL = "https://api.coingecko.com/api/v3"
 lock = Lock()
 next_available_time = time.time()
 
-# Coins you want to fetch data for
-coin_ids = ["dogecoin", "shiba-inu", "pepe"]  # Replace with your list
-
 def fetch_coin_data(coin_id):
     global next_available_time
     url = f"{COINGECKO_API_URL}/coins/{coin_id}"

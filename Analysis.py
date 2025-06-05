@@ -37,11 +37,14 @@ twitter_client = tweepy.Client(bearer_token=TWITTER_BEARER_TOKEN)
 # Cache responses to avoid repeated API calls
 cache = TTLCache(maxsize=100, ttl=300)  # Store 100 results for 5 minutes
 
+# Coins you want to fetch data for
+coin_ids = ["dogecoin", "shiba-inu", "pepe"]  # Replace with your list
+
 # Load crypto analysis data
 def load_data():
     try:
         print("Loading data...")
-        df = get_specific_coin_data()
+        df = get_specific_coin_data(coin_ids)
         print("✅Data loaded successfully through Filtering procress of finding Stable meme coins \.")
         if df is None or df.empty:
             raise ValueError("get_crypto_data() returned an empty DataFrame.")
