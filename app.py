@@ -14,6 +14,7 @@ import re
 from user_agents import parse as parse_ua
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
+from Analysis import Analysis
 
 # Flask app setup
 app = Flask(__name__)
@@ -171,7 +172,6 @@ def get_user_meta_data():
         print(f"❌ Error retrieving user meta collection: {e}")
         return {}
 
-
 @app.after_request
 def log_request(response):
     logging.info(
@@ -193,6 +193,9 @@ def home():
 # Flask route to handle the /getdata endpoint
 @app.route('/getdata', methods=['GET'])
 def getdata():
+    
+    df = Analysis()
+    Crpto_Data = df.to_dict(orient='records')
 
     # Send the Gemini response to Telegram Bot
     # send_telegram_message(TELEGRAM_CHAT_ID, f"User Details:\n{UserDetail}")
@@ -200,7 +203,8 @@ def getdata():
     # Return both dataframes as a JSON response
     response = {
         "User_Detail": get_user_meta_data(),
-        "User_Portfolio": get_user_portfolio_data()
+        "User_Portfolio": get_user_portfolio_data(),
+        "Crypto_Data": Crpto_Data
     }
     
     # Convert to JSON and return
