@@ -1,13 +1,8 @@
-import requests
 import pandas as pd
-import json
-from datetime import datetime
 import pytz
-import time
 from dotenv import load_dotenv
 import os
 import re
-from user_agents import parse as parse_ua
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 
@@ -96,5 +91,54 @@ def get_coin_ids():
         print("MongoDB client is None. Cannot access user portfolio collection.")
         return []
 
+# Get User Portfolio Coins DB Collection Data in JSON format
+def get_user_portfolio_data():
+    try:
+        if client:
+            CryptoCoinsdb = client['CryptoCoins']
+            UserPortfolioCollection = CryptoCoinsdb['UserPortfolio']
+            if UserPortfolioCollection is not None:
+                print("User Portfolio Collection is connected successfully.")
+                # Retrieve all documents from the collection and store them in a dict
+                Assets = []
+                for doc in UserPortfolioCollection.find():
+                    doc['_id'] = str(doc['_id'])  # Convert ObjectId to string
+                    Assets.append(doc)
+                print(f"Retrieved {len(Assets)} assets from User Portfolio Collection.")
+                return Assets
+            else:
+                print("User Portfolio Collection is None. Cannot retrieve data.")
+                return {}
+        else:
+            print("MongoDB client is None. Cannot access user portfolio collection.")
+            return {}
+    except Exception as e:
+        print(f"❌ Error retrieving user portfolio collection: {e}")
+        return {}
+
+# Get User Meta Data in JSON format
+def get_user_meta_data():
+    try:
+        if client:
+            CryptoCoinsdb = client['CryptoCoins']
+            UserMetaCollection = CryptoCoinsdb['UserMetadata']
+            if UserMetaCollection is not None:
+                print("User Meta Collection is connected successfully.")
+                # Retrieve all documents from the collection and store them in a dict
+                Metadata = []
+                for doc in UserMetaCollection.find():
+                    doc['_id'] = str(doc['_id'])  # Convert ObjectId to string
+                    Metadata.append(doc)
+                print(f"Retrieved {len(Metadata)} metadata entries from User Meta Collection.")
+                return Metadata
+            else:
+                print("User Meta Collection is None. Cannot retrieve data.")
+                return {}
+        else:
+            print("MongoDB client is None. Cannot access user meta collection.")
+            return {}
+    except Exception as e:
+        print(f"❌ Error retrieving user meta collection: {e}")
+        return {}
 
 
