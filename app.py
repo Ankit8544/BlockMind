@@ -145,11 +145,7 @@ with app.app_context():
 
 if __name__ == "__main__":
     try:
-        port = int(os.environ.get("PORT"))
-
-        # Run Flask app (disable reloader to avoid running background thread twice)
-        print(f"Flask server started on port {port}.")
-        app.run(host="0.0.0.0", port=port, debug=True, use_reloader=False)
+        app.run(port=5000, debug=True, use_reloader=False)
 
     except Exception as e:
         print(f"❌ Error starting the Flask server: {e}")
