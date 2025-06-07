@@ -145,7 +145,7 @@ with app.app_context():
 
 if __name__ == "__main__":
     try:
-        port = int(os.environ.get("PORT", 10000))
+        port = int(os.environ.get("PORT"))
 
         # Run Flask app (disable reloader to avoid running background thread twice)
         print(f"Flask server started on port {port}.")
