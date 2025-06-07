@@ -1,3 +1,4 @@
+print("✅ Flask app file loaded.")
 from datetime import datetime
 from flask import Flask, jsonify, request
 from flask_cors import CORS
