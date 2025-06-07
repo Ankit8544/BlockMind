@@ -20,7 +20,10 @@ next_available_time = time.time()
 def fetch_coin_data(coin_id):
     global next_available_time
     url = f"{COINGECKO_API_URL}/coins/{coin_id}"
-    headers = {"Accept": "application/json"}
+    headers = {
+    "Accept": "application/json",
+    "x-cg-pro-api-key": os.getenv("COINGECKO_API_KEY")
+    }
 
     max_retries = 5
     wait_time = 3.0
@@ -34,9 +37,13 @@ def fetch_coin_data(coin_id):
 
         try:
             response = requests.get(url, headers=headers)
+            time.sleep(2)  # Delay each request to avoid being flagged as spam
             if response.status_code == 429:
+                print(f"⚠️ Rate limit hit for {coin_id}. Retrying in {wait_time:.2f} seconds...")
+                time.sleep(wait_time)
                 wait_time *= 2
                 continue
+
             response.raise_for_status()
             data = response.json()
 
@@ -73,7 +80,8 @@ def fetch_coin_data(coin_id):
         except requests.exceptions.RequestException as e:
             print(f"❌ Error fetching data for {coin_id}: {e}")
             time.sleep(wait_time)
-
+    
+    print(f"❌ Final failure: Could not fetch data for {coin_id} after {max_retries} attempts.")
     return None  # If all retries fail
 
 # Fetch all coins using ThreadPool
@@ -82,11 +90,30 @@ def get_specific_coin_data(coin_ids):
     print(f"No. of all the coins: {len(coin_ids)}")
     
     all_data = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
         results = list(executor.map(fetch_coin_data, coin_ids))
 
-    # Filter out None responses
-    filtered_results = [res for res in results if res is not None]
+    filtered_results = []
+    failed_coins = []
+
+    for coin_id, result in zip(coin_ids, results):
+        if result is not None:
+            filtered_results.append(result)
+        else:
+            failed_coins.append(coin_id)
+
+    print(f"✅ Successfully fetched {len(filtered_results)} CryptoCoins Data from Coingecko API.")
+
+    if failed_coins:
+        print("🔁 Retrying failed coins one more time...")
+        retry_results = list(executor.map(fetch_coin_data, failed_coins))
+        for coin_id, result in zip(failed_coins, retry_results):
+            if result:
+                filtered_results.append(result)
+            else:
+                print(f"❌ Still failed: {coin_id}")
+
+
 
     df = pd.DataFrame(filtered_results)
 
