@@ -139,7 +139,7 @@ with app.app_context():
 with app.app_context():
     if os.environ.get("FLASK_ENV") == "development":
         print("🔹 Background worker started!")
-        thread = threading.Thread(target=Analysis, daemon=True)
+        thread = threading.Thread(target=load_data, daemon=True)
         thread.start()
         print("Thread Started")
 
