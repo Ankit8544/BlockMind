@@ -78,6 +78,9 @@ def fetch_coin_data(coin_id):
 
 # Fetch all coins using ThreadPool
 def get_specific_coin_data(coin_ids):
+    
+    print(f"No. of all the coins: {len(coin_ids)}")
+    
     all_data = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
         results = list(executor.map(fetch_coin_data, coin_ids))
