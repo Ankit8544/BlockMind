@@ -29,9 +29,9 @@ TWITTER_BEARER_TOKEN = os.getenv("TWITTER_BEARER_TOKEN")
 
 # Reddit API credentials
 reddit = praw.Reddit(
-    client_id = os.getenv("REDDIT_CLIENT_ID"),
-    client_secret = os.getenv("REDDIT_CLIENT_SECRET"),
-    user_agent = os.getenv("REDDIT_USER_AGENTs")
+    client_id = "XQaZSF7aFd169cXHuQs4uA",
+    client_secret = "NCF7iHpFDgkSpwYOESMVRlcrHRx3_Q",
+    user_agent = "meme-coin-sentiment"
 )
 
 # Initialize Twitter Client
