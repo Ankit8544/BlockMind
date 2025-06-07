@@ -146,6 +146,7 @@ with app.app_context():
 if __name__ == "__main__":
     try:
         port = int(os.environ["PORT"])
+        print(f"Assigned Port Number: {port}")
         app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
 
     except Exception as e:
