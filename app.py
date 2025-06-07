@@ -1,11 +1,15 @@
 from datetime import datetime
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+import pandas as pd
 import os
 import logging
 import re
+import threading
 from user_agents import parse as parse_ua
-from Functions.MongoDB_Connection import get_user_portfolio_data, get_user_meta_data
+from Functions.MongoDB import get_user_portfolio_data, get_user_meta_data
+from Functions.CryptoAnalysis.Analysis import Analysis
+from Functions.TelegramBot import handle_start, handle_message, set_webhook
 
 # Flask app setup
 app = Flask(__name__)
@@ -13,6 +17,23 @@ CORS(app)
 
 LOG_FILE = 'access.log'
 logging.basicConfig(filename=LOG_FILE, level=logging.INFO)
+
+# Load crypto analysis data
+def load_data():
+    try:
+        print("Loading data...")
+        df = Analysis()
+        print("✅ Analysis data loaded successfully.")
+        print(f"DataFrame loaded: {df.shape[0]} rows.")
+        if df is None or df.empty:
+            raise ValueError("Analysis() returned an empty DataFrame.")
+        return df
+    except Exception as e:
+        print(f"❌ Error loading crypto analysis data: {e}")
+        return pd.DataFrame()
+
+# DataFrame will be loaded globally
+df = load_data()
 
 @app.after_request
 def log_request(response):
@@ -92,8 +113,43 @@ def get_logs():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# Run the Flask app
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 10000))
-    app.run(debug=False, host="0.0.0.0", port=port)
+@app.route("/webhook", methods=["POST"])
+def telegram_webhook():
+    """Receives Telegram messages and responds."""
+    update = request.get_json()
+    
+    if not update or "message" not in update:
+        return jsonify({"status": "ignored"}), 400
+    
+    chat_id = update["message"]["chat"]["id"]
+    text = update["message"].get("text", "").strip().lower()
 
+    if text == "/start":
+        handle_start(chat_id)
+    else:
+        handle_message(chat_id, text, df=df)
+
+    return jsonify({"status": "ok"}), 200
+
+# Set WebHook for real time reply
+with app.app_context():
+    set_webhook()
+
+# Start background thread only once when the app starts
+with app.app_context():
+    if os.environ.get("FLASK_ENV") == "development":
+        print("🔹 Background worker started!")
+        thread = threading.Thread(target=Analysis, daemon=True)
+        thread.start()
+        print("Thread Started")
+
+if __name__ == "__main__":
+    try:
+        port = int(os.environ.get("PORT", 10000))
+
+        # Run Flask app (disable reloader to avoid running background thread twice)
+        print(f"Flask server started on port {port}.")
+        app.run(host="0.0.0.0", port=port, debug=True, use_reloader=False)
+
+    except Exception as e:
+        print(f"❌ Error starting the Flask server: {e}")

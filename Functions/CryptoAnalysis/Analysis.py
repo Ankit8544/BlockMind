@@ -1,5 +1,3 @@
-from Basic_Coin_Data import get_specific_coin_data
-from dotenv import load_dotenv
 import pandas as pd
 import numpy as np
 import ta  # Technical Analysis Library
@@ -14,22 +12,26 @@ import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import random
 from cachetools import TTLCache
-from Functions.MongoDB_Connection import get_coin_ids
+from Functions.MongoDB import get_coin_ids
+from Functions.CryptoAnalysis.Fetch_Data import get_specific_coin_data
 
 pd.options.mode.chained_assignment = None
 
-COINGECKO_API_URL = "https://api.coingecko.com/api/v3"
+# CoinGecko API URL
+COINGECKO_API_URL = os.getenv("COINGECKO_API_URL", "https://api.coingecko.com/api/v3")
 
+# Twitter API credentials
 TWITTER_API_KEY = os.getenv("TWITTER_API_KEY")
 TWITTER_API_SECRET = os.getenv("TWITTER_API_SECRET")
 TWITTER_ACCESS_TOKEN = os.getenv("TWITTER_ACCESS_TOKEN")
 TWITTER_ACCESS_SECRET = os.getenv("TWITTER_ACCESS_SECRET")
 TWITTER_BEARER_TOKEN = os.getenv("TWITTER_BEARER_TOKEN")
 
+# Reddit API credentials
 reddit = praw.Reddit(
-    client_id = 'XQaZSF7aFd169cXHuQs4uA',
-    client_secret = 'NCF7iHpFDgkSpwYOESMVRlcrHRx3_Q',
-    user_agent = 'meme-coin-sentiment'
+    client_id = os.getenv("REDDIT_CLIENT_ID"),
+    client_secret = os.getenv("REDDIT_CLIENT_SECRET"),
+    user_agent = os.getenv("REDDIT_USER_AGENTs")
 )
 
 # Initialize Twitter Client
@@ -103,20 +105,13 @@ def get_contract_address(coin_id, symbol):
 # Exponential Backoff for handling rate limits
 def fetch_with_retries(url, retries=7, base_delay=3):
     for attempt in range(retries):
-        try:
-            response = requests.get(url)
-            
-            if response.status_code == 429:
-                wait_time = base_delay * (2 ** attempt) + random.uniform(0, 1)
-                time.sleep(wait_time)
-                continue  # Retry the request
-
-            response.raise_for_status()
-            return response.json()
-
-        except requests.exceptions.RequestException as e:
-            print(f"Error fetching {url} (Attempt {attempt+1}): {e}")
-    
+        response = requests.get(url)
+        if response.status_code == 429:
+            wait_time = base_delay * (2 ** attempt) + random.uniform(0, 1)
+            time.sleep(wait_time)
+            continue  # Retry the request
+        response.raise_for_status()
+        return response.json()
     return None  # Return None after max retries
 
 # Fetch liquidity from DexScreener for tokens
@@ -167,8 +162,8 @@ def get_liquidity(contract_address, coin_id):
     return get_dex_liquidity(contract_address)  # Use DexScreener for tokens
 
 # Function to get sentiment score & engagement metrics
-def get_reddit_sentiment(query="meme coin", limit=50):
-    posts = reddit.subreddit("cryptocurrency").search(query, limit=limit)
+def get_reddit_sentiment(query, limit=50):
+    posts = reddit.subreddit("cryptocurrency+CryptoMarkets").search(query, limit=limit)
 
     sentiment_score = 0
     count = 0
@@ -194,7 +189,7 @@ def get_reddit_sentiment(query="meme coin", limit=50):
 # Full Analysis
 def Analysis():
     global df
-    print("Starting full analysis...")
+    print("Start Analyzing the Crypto Data Fetched through th Coingecko API")
 
     # Select the Coin ID column and convert it to a list
     crypto_Ids = df['Coin ID'].tolist()
