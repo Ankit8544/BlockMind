@@ -58,13 +58,13 @@ def home():
 @app.route('/getdata', methods=['GET'])
 def getdata():
 
-    # Send the Gemini response to Telegram Bot
-    # send_telegram_message(TELEGRAM_CHAT_ID, f"User Details:\n{UserDetail}")
-
+    global df
+    
     # Return both dataframes as a JSON response
     response = {
         "User_Detail": get_user_meta_data(),
-        "User_Portfolio": get_user_portfolio_data()
+        "User_Portfolio": get_user_portfolio_data(),
+        "Protfolio_Based_Cryto_Data": df.to_dict()
     }
     
     # Convert to JSON and return
