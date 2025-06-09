@@ -60,8 +60,6 @@ def load_data():
             raise ValueError("API response does not contain expected data")
 
         df = pd.DataFrame.from_dict(crypto_data)
-        df = df.transpose()  # Optional, depending on your output shape
-
         print(f"✅ Based on User Portfolio {df.shape[0]} CryptoCoins Data is loaded successfully.")
         return df
 
@@ -74,7 +72,6 @@ def load_data():
         return pd.DataFrame()
 
 df = load_data()
-print(df.columns)
 
 # Function to calculate return multiple
 def calculate_return_multiple(price_change):
@@ -137,6 +134,11 @@ def get_dex_liquidity(contract_address):
     if not contract_address or contract_address == "Native Coin (No Contract)":
         return None  # Skip if no contract address
 
+    # Avoid calling API for unsupported formats (like Cosmos addresses)
+    if not contract_address.startswith("0x"):  # DexScreener only supports Ethereum-style addresses
+        print(f"⚠️ Skipping unsupported contract format: {contract_address}")
+        return None
+
     if contract_address in cache:
         return cache[contract_address]  # Return cached result
 
@@ -146,10 +148,7 @@ def get_dex_liquidity(contract_address):
     if data and "pairs" in data and isinstance(data["pairs"], list) and len(data["pairs"]) > 0:
         liquidity = data["pairs"][0].get("liquidity", {}).get("usd", 0)
         cache[contract_address] = liquidity  # Cache the result
-
-        # Sleep for 1-2 seconds before the next request to avoid rate limits
         time.sleep(random.uniform(1, 2))
-
         return liquidity
 
     return 0  # Default to 0 if no data found
@@ -226,7 +225,6 @@ def Analysis():
                 data = response.json()
                 break
             elif response.status_code == 429:
-                print(f"Rate limit exceeded. Retrying after 60 seconds...")
                 time.sleep(60)
             else:
                 print(f"Failed to fetch data for {Crypto_Id}: {response.status_code}")
@@ -241,6 +239,7 @@ def Analysis():
             prices = pd.DataFrame(data['prices'], columns=['timestamp', 'price'])
             prices['timestamp'] = pd.to_datetime(prices['timestamp'], unit='ms')
             prices.set_index('timestamp', inplace=True)
+            
         except KeyError:
             print(f"Skipping {Crypto_Id} due to missing keys in data.")
             continue
