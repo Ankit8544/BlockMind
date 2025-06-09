@@ -37,7 +37,8 @@ def fetch_coin_data(coin_id):
 
         try:
             response = requests.get(url, headers=headers)
-            time.sleep(2)  # Delay each request to avoid being flagged as spam
+            time.sleep(3)  # Enforce hard pause between requests to stay within free-tier limit
+
             if response.status_code == 429:
                 print(f"⚠️ Rate limit hit for {coin_id}. Retrying in {wait_time:.2f} seconds...")
                 time.sleep(wait_time)
@@ -112,8 +113,6 @@ def get_specific_coin_data(coin_ids):
                 filtered_results.append(result)
             else:
                 print(f"❌ Still failed: {coin_id}")
-
-
 
     df = pd.DataFrame(filtered_results)
 

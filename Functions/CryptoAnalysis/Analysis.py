@@ -20,6 +20,9 @@ pd.options.mode.chained_assignment = None
 # CoinGecko API URL
 COINGECKO_API_URL = os.getenv("COINGECKO_API_URL", "https://api.coingecko.com/api/v3")
 
+# Replace with your deployed URL
+API_URL = "https://tackle-cryptodata-api-ratelimit.onrender.com/getdata"
+
 # Twitter API credentials
 TWITTER_API_KEY = os.getenv("TWITTER_API_KEY")
 TWITTER_API_SECRET = os.getenv("TWITTER_API_SECRET")
@@ -47,14 +50,22 @@ coin_ids = get_coin_ids()  # Replace with your list
 def load_data():
     try:
         print("Loading data...")
-        df = get_specific_coin_data(coin_ids)
+        response = requests.get(API_URL)
+        response.raise_for_status()  # Raise error if status is not 200
+
+        data = response.json()
+        crypto_data = data.get("User Portfolio Based Crypto Data", {})
+
+        # Convert dictionary to DataFrame
+        df = pd.DataFrame.from_dict(crypto_data)
         print("✅Data Fetched successfully through Coingecko.")
         if df is None or df.empty:
             raise ValueError("get_crypto_data() returned an empty DataFrame.")
         return df
-    except Exception as e:
-        print(f"❌ Error loading crypto analysis data: {e}")
-        return pd.DataFrame()
+        
+
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Failed to fetch data: {e}")
 
 df = load_data()
 
