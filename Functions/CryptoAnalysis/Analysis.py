@@ -13,7 +13,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import random
 from cachetools import TTLCache
 from Functions.MongoDB import get_coin_ids
-from Functions.CryptoAnalysis.Fetch_Data import get_specific_coin_data
 
 pd.options.mode.chained_assignment = None
 
