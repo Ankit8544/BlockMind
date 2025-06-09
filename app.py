@@ -60,11 +60,16 @@ def getdata():
 
     global df
     
+    print("🚀 DEBUG: df is None?", df is None)
+    print("🚀 DEBUG: df empty?", df.empty)
+    print("🚀 DEBUG: df columns:", df.columns.tolist() if not df.empty else "No columns")
+    print("🚀 DEBUG: df preview:", df.head(3).to_dict(orient="records") if not df.empty else "Empty")
+    
     # Return both dataframes as a JSON response
     response = {
         "User_Detail": get_user_meta_data(),
         "User_Portfolio": get_user_portfolio_data(),
-        "Protfolio_Based_Cryto_Data": df.to_dict()
+        "Protfolio_Based_Cryto_Data": df.to_dict(orient="records")
     }
     
     # Convert to JSON and return
