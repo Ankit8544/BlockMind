@@ -51,21 +51,27 @@ def load_data():
     try:
         print("Loading data...")
         response = requests.get(API_URL)
-        response.raise_for_status()  # Raise error if status is not 200
+        response.raise_for_status()
 
         data = response.json()
         crypto_data = data.get("User Portfolio Based Crypto Data", {})
 
-        # Convert dictionary to DataFrame
+        if not crypto_data:
+            raise ValueError("API response does not contain expected data")
+
         df = pd.DataFrame.from_dict(crypto_data)
-        print("✅Data Fetched successfully through Coingecko.")
-        if df is None or df.empty:
-            raise ValueError("get_crypto_data() returned an empty DataFrame.")
+        df = df.transpose()  # Optional, depending on your output shape
+
+        print("✅ Data Fetched successfully through API.")
         return df
-        
 
     except requests.exceptions.RequestException as e:
         print(f"❌ Failed to fetch data: {e}")
+        return pd.DataFrame()
+
+    except Exception as e:
+        print(f"❌ Error loading crypto analysis data: {e}")
+        return pd.DataFrame()
 
 df = load_data()
 
