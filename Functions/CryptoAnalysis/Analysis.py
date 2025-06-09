@@ -62,7 +62,7 @@ def load_data():
         df = pd.DataFrame.from_dict(crypto_data)
         df = df.transpose()  # Optional, depending on your output shape
 
-        print("✅ Data Fetched successfully through API.")
+        print(f"✅ Based on User Portfolio {df.shape[0]} CryptoCoins Data is loaded successfully.")
         return df
 
     except requests.exceptions.RequestException as e:
@@ -74,6 +74,7 @@ def load_data():
         return pd.DataFrame()
 
 df = load_data()
+print(df.columns)
 
 # Function to calculate return multiple
 def calculate_return_multiple(price_change):
