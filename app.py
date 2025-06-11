@@ -3,6 +3,7 @@ from datetime import datetime
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 import pandas as pd
+import numpy as np
 import os
 import logging
 import re
@@ -59,6 +60,14 @@ def home():
 def getdata():
 
     global df
+    
+    # Clean unsafe values, but keep None
+    df = df.replace({
+        np.nan: None,
+        np.inf: None,
+        -np.inf: None,
+        pd.NaT: None
+    })
 
     # Return both dataframes as a JSON response
     response = {
