@@ -64,7 +64,7 @@ def getdata():
     response = {
         "User_Detail": get_user_meta_data(),
         "User_Portfolio": get_user_portfolio_data(),
-        "Protfolio_Based_Cryto_Data": df
+        "Protfolio_Based_Cryto_Data": df.to_dict()
     }
     
     # Convert to JSON and return
