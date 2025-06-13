@@ -38,59 +38,6 @@ def connect_to_mongo():
 # Connect to MongoDB
 client = connect_to_mongo()
 
-# Get Coin IDs from CoinsList Collection using Coin Name to match with UserPortfolio Collection
-def get_coin_ids():
-    if client:
-        try:
-            # Access the UserPortfolio collection
-            CryptoCoinsdb = client['CryptoCoins']
-            UserPortfolioCollection = CryptoCoinsdb['UserPortfolio']
-            if UserPortfolioCollection is not None:
-
-                # Retrieve all documents from the collection
-                data = []
-                for doc in UserPortfolioCollection.find():
-                    doc['_id'] = str(doc['_id'])  # Convert ObjectId to string
-                    data.append(doc)
-                
-                if not data:
-                    return pd.DataFrame()  # Return empty DataFrame if no data
-
-                # Convert list of dictionaries to DataFrame
-                df = pd.DataFrame(data)
-
-                # Ensure '_id' is treated as a string
-                if '_id' in df.columns:
-                    df['_id'] = df['_id'].astype(str)
-
-                # Portfolio Coin Name and Coin Symbol
-                assets = {
-                    "Coin Name": df['coin_name'].unique().tolist(),
-                    "Coin Symbol": df['coin_symbol'].unique().tolist(),
-                }
-                
-                Coin_Names = [re.sub(r'\W+', ' ', name) for name in assets['Coin Name']]
-                
-                CryptoCoinsdb = client['CryptoCoins']
-                CoinlistsCollection = CryptoCoinsdb['CoinsList']
-
-                # Use $in to fetch all matching documents by coin name
-                query = {"name": {"$in": Coin_Names}}
-                cursor = CoinlistsCollection.find(query, {"name": 1, "id": 1, "_id": 0})  # Only fetch 'id' and 'name'
-
-                coin_ids = [doc['id'] for doc in cursor]
-                
-                return coin_ids
-            else:
-                print("User Portfolio Collection is None. Cannot retrieve data.")
-                return []
-        except Exception as e:
-            print(f"❌ Error retrieving user portfolio collection: {e}")
-            return []
-    else:
-        print("MongoDB client is None. Cannot access user portfolio collection.")
-        return []
-
 # Get User Portfolio Coins DB Collection Data in JSON format
 def get_user_portfolio_data():
     try:

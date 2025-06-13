@@ -1,4 +1,3 @@
-print("✅ Flask app file loaded.")
 from datetime import datetime
 from flask import Flask, jsonify, request
 from flask_cors import CORS
@@ -10,7 +9,6 @@ import re
 import threading
 from user_agents import parse as parse_ua
 from Functions.MongoDB import get_user_portfolio_data, get_user_meta_data
-from Functions.CryptoAnalysis.Analysis import Analysis
 from Functions.TelegramBot import handle_start, handle_message, set_webhook
 
 # Flask app setup
@@ -19,23 +17,6 @@ CORS(app)
 
 LOG_FILE = 'access.log'
 logging.basicConfig(filename=LOG_FILE, level=logging.INFO)
-
-# Load crypto analysis data
-def load_data():
-    try:
-        print("Loading data...")
-        df = Analysis()
-        print("✅ Analysis data loaded successfully.")
-        print(f"DataFrame loaded: {df.shape[0]} rows.")
-        if df is None or df.empty:
-            raise ValueError("Analysis() returned an empty DataFrame.")
-        return df
-    except Exception as e:
-        print(f"❌ Error loading crypto analysis data: {e}")
-        return pd.DataFrame()
-
-# DataFrame will be loaded globally
-df = load_data()
 
 @app.after_request
 def log_request(response):
@@ -59,21 +40,10 @@ def home():
 @app.route('/getdata', methods=['GET'])
 def getdata():
 
-    global df
-    
-    # Clean unsafe values, but keep None
-    df = df.replace({
-        np.nan: None,
-        np.inf: None,
-        -np.inf: None,
-        pd.NaT: None
-    })
-
     # Return both dataframes as a JSON response
     response = {
         "User_Detail": get_user_meta_data(),
-        "User_Portfolio": get_user_portfolio_data(),
-        "Protfolio_Based_Cryto_Data": df.to_dict()
+        "User_Portfolio": get_user_portfolio_data()
     }
     
     # Convert to JSON and return
