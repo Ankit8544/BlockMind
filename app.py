@@ -8,8 +8,9 @@ import logging
 import re
 import threading
 from user_agents import parse as parse_ua
-from Functions.MongoDB import get_user_portfolio_data, get_user_meta_data
+from Functions.MongoDB import get_user_portfolio_data, get_user_meta_data, refersh_cryptodata, get_crypto_data
 from Functions.TelegramBot import handle_start, handle_message, set_webhook
+from Functions.Analysis import Analysis
 
 # Flask app setup
 app = Flask(__name__)
@@ -17,6 +18,20 @@ CORS(app)
 
 LOG_FILE = 'access.log'
 logging.basicConfig(filename=LOG_FILE, level=logging.INFO)
+
+# Load crypto analysis data
+def load_data():
+    try:
+        df = Analysis()
+        print(f"✅ Based on User Portfolio {df.shape[0]} CryptoCoins Data is loaded successfully in the Flask App.")
+        if df is None or df.empty:
+            raise ValueError("Analysis() returned an empty DataFrame.")
+        
+        refersh_cryptodata(df=df)
+        
+    except Exception as e:
+        print(f"❌ Error loading crypto analysis data: {e}")
+        return pd.DataFrame()
 
 @app.after_request
 def log_request(response):
@@ -31,7 +46,15 @@ def log_request(response):
 @app.route('/')
 def home():
     try:
-        return "🚀 App is live and running!"
+        return '''
+            <html>
+                <head><title>Crypto API</title></head>
+                <body>
+                    <h1>✅ Crypto API is Live!</h1>
+                    <p>Visit <code>/getdata</code> to get the portfolio data in JSON.</p>
+                </body>
+            </html>
+        '''
     except Exception as e:
         print("❌ Error in / route:", str(e))
         return jsonify({"error": str(e)}), 500
@@ -42,8 +65,9 @@ def getdata():
 
     # Return both dataframes as a JSON response
     response = {
-        "User_Detail": get_user_meta_data(),
-        "User_Portfolio": get_user_portfolio_data()
+        "User Meta Data": get_user_meta_data(),
+        "User Portfolio": get_user_portfolio_data(),
+        "User Portfolio Based Crypto Data": get_crypto_data()
     }
     
     # Convert to JSON and return
