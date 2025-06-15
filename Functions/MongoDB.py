@@ -41,37 +41,29 @@ client = connect_to_mongo()
 
 # Get Coin IDs from CoinsList Collection using Coin Name to match with UserPortfolio Collection
 def get_coin_ids():
-    print("🔍 Checking MongoDB client connection...")
     if client:
         try:
             CryptoCoinsdb = client['CryptoCoins']
             UserPortfolioCollection = CryptoCoinsdb['UserPortfolio']
 
             if UserPortfolioCollection is not None:
-                print("📥 Fetching documents from 'UserPortfolio' collection...")
                 data = []
                 for doc in UserPortfolioCollection.find():
                     doc['_id'] = str(doc['_id'])  # Convert ObjectId to string
                     data.append(doc)
 
-                print(f"📊 Total documents fetched: {len(data)}")
-
                 if not data:
-                    print("⚠️ No user portfolio data found.")
                     return pd.DataFrame()
 
                 df = pd.DataFrame(data)
-                print(f"✅ DataFrame shape: {df.shape}")
 
                 if '_id' in df.columns:
                     df['_id'] = df['_id'].astype(str)
 
                 coin_names_raw = df['coin_name'].unique().tolist()
-                print(f"🪙 Unique Coin Names (raw): {coin_names_raw}")
 
                 # Clean names (remove special characters, extra spaces)
                 Coin_Names = [re.sub(r'\W+', ' ', name).strip() for name in coin_names_raw]
-                print(f"🧼 Cleaned Coin Names: {Coin_Names}")
 
                 CoinlistsCollection = CryptoCoinsdb['CoinsList']
 
@@ -86,17 +78,12 @@ def get_coin_ids():
                 coin_ids = [doc['id'] for doc in result]
                 matched_names = [doc['name'] for doc in result]
 
-                print(f"✅ Matched Coin Names: {matched_names}")
-                print(f"🆔 Total Coin IDs fetched: {len(coin_ids)}")
-
                 unmatched = {
                     name for name in Coin_Names
                     if name.strip().lower() not in {m.strip().lower() for m in matched_names}
                 }
                 if unmatched:
                     print(f"❌ Unmatched Coin Names: {unmatched}")
-                else:
-                    print("✅ All coin names matched successfully.")
 
                 return coin_ids
             else:
@@ -121,12 +108,12 @@ def refersh_cryptodata(df):
             records = df.to_dict(orient='records')
 
             if CryptoDataCollection.count_documents({}) > 0:
-                print("🗑️ Old data found in 'CryptoAnalysis'. Deleting...")
+                print("🗑️ Old Crypto Data found in 'CryptoAnalysis' Collection.So We are going to Delete it.")
                 CryptoDataCollection.delete_many({})
                 
-            print("📤 Inserting new data into 'CryptoAnalysis' collection...")
+            print("📤 Inserting New Analyzed Crypto Data into 'CryptoAnalysis' collection.")
             CryptoDataCollection.insert_many(records)
-            print("✅ MongoDB upload completed.")
+            print("✅ MongoDB 'CryptoAnalysis' collection uploaded successfully.")
 
     except Exception as e:
         print(f"❌ Error while uploading to MongoDB: {e}")
@@ -138,13 +125,11 @@ def get_user_portfolio_data():
             CryptoCoinsdb = client['CryptoCoins']
             UserPortfolioCollection = CryptoCoinsdb['UserPortfolio']
             if UserPortfolioCollection is not None:
-                print("User Portfolio Collection is connected successfully.")
                 # Retrieve all documents from the collection and store them in a dict
                 Assets = []
                 for doc in UserPortfolioCollection.find():
                     doc['_id'] = str(doc['_id'])  # Convert ObjectId to string
                     Assets.append(doc)
-                print(f"Retrieved {len(Assets)} assets from User Portfolio Collection.")
                 return Assets
             else:
                 print("User Portfolio Collection is None. Cannot retrieve data.")
@@ -163,13 +148,11 @@ def get_user_meta_data():
             CryptoCoinsdb = client['CryptoCoins']
             UserMetaCollection = CryptoCoinsdb['UserMetadata']
             if UserMetaCollection is not None:
-                print("User Meta Collection is connected successfully.")
                 # Retrieve all documents from the collection and store them in a dict
                 Metadata = []
                 for doc in UserMetaCollection.find():
                     doc['_id'] = str(doc['_id'])  # Convert ObjectId to string
                     Metadata.append(doc)
-                print(f"Retrieved {len(Metadata)} metadata entries from User Meta Collection.")
                 return Metadata
             else:
                 print("User Meta Collection is None. Cannot retrieve data.")
@@ -189,13 +172,11 @@ def get_crypto_data():
             CryptoDataCollection = CryptoDataDB["CryptoAnalysis"]
             
             if CryptoDataCollection is not None:
-                print("CryptoData Collection is connected successfully.")
                 # Retrieve all documents from the collection and store them in a dict
                 CryptoData = []
                 for doc in CryptoDataCollection.find():
                     doc['_id'] = str(doc['_id'])  # Convert ObjectId to string
                     CryptoData.append(doc)
-                print(f"Retrieved {len(CryptoData)} assets from CryptoData Collection.")
                 return CryptoData
             else:
                 print("CryptoData Collection is None. Cannot retrieve data.")
