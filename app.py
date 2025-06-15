@@ -118,26 +118,26 @@ def get_logs():
         return jsonify({"error": str(e)}), 500
 
 #@app.route("/webhook", methods=["POST"])
-#def telegram_webhook():
-#    """Receives Telegram messages and responds."""
-#    update = request.get_json()
+def telegram_webhook():
+    """Receives Telegram messages and responds."""
+    update = request.get_json()
     
-#    if not update or "message" not in update:
-#        return jsonify({"status": "ignored"}), 400
+    if not update or "message" not in update:
+        return jsonify({"status": "ignored"}), 400
     
-#    chat_id = update["message"]["chat"]["id"]
-#    text = update["message"].get("text", "").strip().lower()
+    chat_id = update["message"]["chat"]["id"]
+    text = update["message"].get("text", "").strip().lower()
 
-#    if text == "/start":
-#        handle_start(chat_id)
-#    else:
-#        handle_message(chat_id, text, df=df)
+    if text == "/start":
+        handle_start(chat_id)
+    else:
+        handle_message(chat_id, text)
 
-#    return jsonify({"status": "ok"}), 200
+    return jsonify({"status": "ok"}), 200
 
 # Set WebHook for real time reply
-#with app.app_context():
-#    set_webhook()
+with app.app_context():
+    set_webhook()
 
 # Start background thread only once when the app starts
 #with app.app_context():
