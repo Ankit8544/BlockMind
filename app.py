@@ -147,12 +147,3 @@ def get_logs():
 #        thread.start()
 #        print("Thread Started")
 
-if __name__ == "__main__":
-    try:
-        port = int(os.environ["PORT"])
-        print(f"Assigned Port Number: {port}")
-        print(f"App listening on port {port}")
-        app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
-
-    except Exception as e:
-        print(f"❌ Error starting the Flask server: {e}")
