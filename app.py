@@ -15,6 +15,7 @@ from Functions.TelegramBot import handle_start, handle_message, set_webhook
 from Functions.BlockMindsStatusBot import send_status_message
 from Functions.Analysis import Analysis
 import sys
+import signal
 
 # Status TELEGRAM CHAT I'D
 Status_TELEGRAM_CHAT_ID = os.getenv("Status_TELEGRAM_CHAT_ID")
@@ -27,6 +28,15 @@ CORS(app)
 
 LOG_FILE = 'access.log'
 logging.basicConfig(filename=LOG_FILE, level=logging.INFO)
+
+stop_event = threading.Event()
+
+# Temporarily store original signal handler
+original_sigterm_handler = None
+
+def handle_sigterm(signum, frame):
+    send_status_message(Status_TELEGRAM_CHAT_ID, "⚠️ SIGTERM received, will stop after current job.")
+    stop_event.set()
 
 # Load crypto analysis data
 def load_data():
@@ -43,17 +53,31 @@ def load_data():
         return pd.DataFrame()
 
 def run_periodic_loader():
-    """Periodically runs load_data every 10 minutes AFTER each successful completion."""
+    
+    global original_sigterm_handler
+    
     ist = pytz.timezone('Asia/Kolkata')
     
-    while True:
+    while not stop_event.is_set():
         try:
+            
+            # 1. Ignore SIGTERM temporarily
+            original_sigterm_handler = signal.getsignal(signal.SIGTERM)
+            signal.signal(signal.SIGTERM, signal.SIG_IGN)
+            
             current_ist_time = datetime.now(ist).strftime('%H:%M:%S')
-            send_status_message(Status_TELEGRAM_CHAT_ID, f"🔄 Starting periodic data loading at: {current_ist_time}")
+            send_status_message(Status_TELEGRAM_CHAT_ID, f"🔄 Starting periodic data loading at: {current_ist_time} with SIGTERM ignored")
             load_data()  # This will refresh MongoDB data via refresh_cryptodata inside load_data()
         except Exception as e:
             send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error in periodic data load: {e}")
         finally:
+            
+            # 2. Restore the SIGTERM handler after job finishes
+            signal.signal(signal.SIGTERM, handle_sigterm)
+
+            if stop_event.is_set():
+                break
+            
             send_status_message(Status_TELEGRAM_CHAT_ID, "⏳ Waiting for 10 minutes to update the data")
             time.sleep(600)  # Wait after completion of each run
 
