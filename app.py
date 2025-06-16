@@ -117,7 +117,7 @@ def get_logs():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-#@app.route("/webhook", methods=["POST"])
+@app.route("/webhook", methods=["POST"])
 def telegram_webhook():
     """Receives Telegram messages and responds."""
     update = request.get_json()
