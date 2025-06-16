@@ -7,9 +7,13 @@ from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 import numpy as np
 import sys
+from Functions.BlockMindsStatusBot import send_status_message
 
 # Load environment variables
 load_dotenv()
+
+# Load API credentials
+Status_TELEGRAM_CHAT_ID = os.getenv("Status_TELEGRAM_CHAT_ID")
 
 # MongoDB Credentials
 MONGO_DB_USERNAME = os.getenv("MONGO_DB_USERNAME")
@@ -109,12 +113,12 @@ def refersh_cryptodata(df):
             records = df.to_dict(orient='records')
 
             if CryptoDataCollection.count_documents({}) > 0:
-                print("🗑️ Old Crypto Data found in 'CryptoAnalysis' Collection.So We are going to Delete it.", flush=True)
+                send_status_message(Status_TELEGRAM_CHAT_ID, "🗑️ Old Crypto Data found in 'CryptoAnalysis' Collection.So We are going to Delete it.", flush=True)
                 CryptoDataCollection.delete_many({})
                 
-            print("📤 Inserting New Analyzed Crypto Data into 'CryptoAnalysis' collection.", flush=True)
+            send_status_message(Status_TELEGRAM_CHAT_ID, "📤 Inserting New Analyzed Crypto Data into 'CryptoAnalysis' collection.", flush=True)
             CryptoDataCollection.insert_many(records)
-            print("✅ MongoDB 'CryptoAnalysis' collection uploaded successfully.", flush=True)
+            send_status_message(Status_TELEGRAM_CHAT_ID, "✅ MongoDB 'CryptoAnalysis' collection uploaded successfully.", flush=True)
 
     except Exception as e:
         print(f"❌ Error while uploading to MongoDB: {e}")

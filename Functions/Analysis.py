@@ -14,14 +14,15 @@ import random
 from cachetools import TTLCache
 from Functions.Fetch_Data import get_specific_coin_data
 from Functions.MongoDB import get_coin_ids
+from Functions.BlockMindsStatusBot import send_status_message
 
 pd.options.mode.chained_assignment = None
 
 # CoinGecko API URL
 COINGECKO_API_URL = os.getenv("COINGECKO_API_URL", "https://api.coingecko.com/api/v3")
 
-# Replace with your deployed URL
-API_URL = "https://tackle-cryptodata-api-ratelimit.onrender.com/getdata"
+# Status TELEGRAM CHAT I'D
+Status_TELEGRAM_CHAT_ID = os.getenv("Status_TELEGRAM_CHAT_ID")
 
 # Twitter API credentials
 TWITTER_API_KEY = os.getenv("TWITTER_API_KEY")
@@ -46,7 +47,7 @@ cache = TTLCache(maxsize=500, ttl=900)  # Store 100 results for 5 minutes
 # Fetched Crypto Data from CoinGecko using get_specific_coin_data function
 def load_data():
     try:
-        print("🔄 Loading Crypto Data from CoinGecko using User Portfolio Coin IDs.", flush=True)
+        send_status_message(Status_TELEGRAM_CHAT_ID, "🔄 Loading Crypto Data from CoinGecko using User Portfolio Coin IDs.")
         
         # Coins you want to fetch data for
         coin_ids = get_coin_ids()  # Replace with your list
@@ -59,7 +60,7 @@ def load_data():
         if df.empty:
             raise ValueError("No data returned from get_specific_coin_data")
 
-        print(f"✅ Based on User Portfolio, {df.shape[0]} CryptoCoins data loaded successfully from CoinGecko.", flush=True)
+        send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ Based on User Portfolio, {df.shape[0]} CryptoCoins data loaded successfully from CoinGecko.")
         return df
 
     except Exception as e:
@@ -201,7 +202,7 @@ def Analysis():
     # Load the data globaly 
     df = load_data()
     
-    print("🔄 Start Analyzing the Crypto Data which fetched the Coingecko API", flush=True)
+    send_status_message(Status_TELEGRAM_CHAT_ID, "🔄 Start Analyzing the Crypto Data which fetched the Coingecko API")
 
     # Select the Coin ID column and convert it to a list
     crypto_Ids = df['Coin ID'].tolist()
@@ -334,6 +335,6 @@ def Analysis():
     )
 
     df = df.replace({np.nan: None})  # <-- CLEANING
-    print("✅ All Analysis Completed Successfully.", flush=True)
+    send_status_message(Status_TELEGRAM_CHAT_ID, "✅ All Analysis Completed Successfully.")
     return df
 
