@@ -48,6 +48,7 @@ cache = TTLCache(maxsize=500, ttl=900)  # Store 100 results for 5 minutes
 def load_data():
     try:
         send_status_message(Status_TELEGRAM_CHAT_ID, "🔄 Loading Crypto Data from CoinGecko using User Portfolio Coin IDs.")
+        print("🔄 Loading Crypto Data from CoinGecko using User Portfolio Coin IDs.")
         
         # Coins you want to fetch data for
         coin_ids = get_coin_ids()  # Replace with your list
@@ -61,6 +62,7 @@ def load_data():
             raise ValueError("No data returned from get_specific_coin_data")
 
         send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ Based on User Portfolio, {df.shape[0]} CryptoCoins data loaded successfully from CoinGecko.")
+        print(f"✅ Based on User Portfolio, {df.shape[0]} CryptoCoins data loaded successfully from CoinGecko.")
         return df
 
     except Exception as e:
@@ -203,6 +205,7 @@ def Analysis():
     df = load_data()
     
     send_status_message(Status_TELEGRAM_CHAT_ID, "🔄 Start Analyzing the Crypto Data which fetched the Coingecko API")
+    print("🔄 Start Analyzing the Crypto Data which fetched the Coingecko API")
 
     # Select the Coin ID column and convert it to a list
     crypto_Ids = df['Coin ID'].tolist()
@@ -336,5 +339,6 @@ def Analysis():
 
     df = df.replace({np.nan: None})  # <-- CLEANING
     send_status_message(Status_TELEGRAM_CHAT_ID, "✅ All Analysis Completed Successfully.")
+    print("✅ All Analysis Completed Successfully.")
     return df
 

@@ -3,6 +3,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 import pandas as pd
 import numpy as np
+import pytz
 import os
 import logging
 import re
@@ -15,6 +16,11 @@ from Functions.BlockMindsStatusBot import send_status_message
 from Functions.Analysis import Analysis
 import sys
 
+# Status TELEGRAM CHAT I'D
+Status_TELEGRAM_CHAT_ID = os.getenv("Status_TELEGRAM_CHAT_ID")
+
+sys.stdout.reconfigure(line_buffering=True)
+
 # Flask app setup
 app = Flask(__name__)
 CORS(app)
@@ -22,14 +28,12 @@ CORS(app)
 LOG_FILE = 'access.log'
 logging.basicConfig(filename=LOG_FILE, level=logging.INFO)
 
-# Status TELEGRAM CHAT I'D
-Status_TELEGRAM_CHAT_ID = os.getenv("Status_TELEGRAM_CHAT_ID")
-
 # Load crypto analysis data
 def load_data():
     try:
         df = Analysis()
         send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ Based on User Portfolio {df.shape[0]} CryptoCoins Data is loaded successfully in the Flask App.")
+        print(f"✅ Based on User Portfolio {df.shape[0]} CryptoCoins Data is loaded successfully in the Flask App.")
         if df is None or df.empty:
             raise ValueError("Analysis() returned an empty DataFrame.")
         
@@ -40,15 +44,20 @@ def load_data():
         return pd.DataFrame()
 
 def run_periodic_loader():
-    """Periodically runs load_data every 30 minutes AFTER each successful completion."""
+    """Periodically runs load_data every 10 minutes AFTER each successful completion."""
+    ist = pytz.timezone('Asia/Kolkata')
+    
     while True:
         try:
-            send_status_message(Status_TELEGRAM_CHAT_ID, f"🔄 Starting periodic data loading at: {datetime.now().strftime('%H:%M:%S')}")
-            load_data()  # This will refresh MongoDB data via refersh_cryptodata inside load_data()
+            current_ist_time = datetime.now(ist).strftime('%H:%M:%S')
+            send_status_message(Status_TELEGRAM_CHAT_ID, f"🔄 Starting periodic data loading at: {current_ist_time}")
+            print(f"🔄 Starting periodic data loading at: {current_ist_time}")
+            load_data()  # This will refresh MongoDB data via refresh_cryptodata inside load_data()
         except Exception as e:
             print(f"❌ Error in periodic data load: {e}")
         finally:
-            send_status_message(Status_TELEGRAM_CHAT_ID, "⏳ Waiting 10 minutes before next load...")
+            send_status_message(Status_TELEGRAM_CHAT_ID, "⏳ Waiting for 10 minutes to update the data")
+            print("⏳ Waiting for 10 minutes to update the data")
             time.sleep(600)  # Wait after completion of each run
 
 @app.after_request

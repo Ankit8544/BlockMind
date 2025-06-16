@@ -113,12 +113,15 @@ def refersh_cryptodata(df):
             records = df.to_dict(orient='records')
 
             if CryptoDataCollection.count_documents({}) > 0:
-                send_status_message(Status_TELEGRAM_CHAT_ID, "🗑️ Old Crypto Data found in 'CryptoAnalysis' Collection.So We are going to Delete it.", flush=True)
+                send_status_message(Status_TELEGRAM_CHAT_ID, "🗑️ Old Crypto Data found in 'CryptoAnalysis' Collection.So We are going to Delete it.")
+                print("🗑️ Old Crypto Data found in 'CryptoAnalysis' Collection.So We are going to Delete it.")
                 CryptoDataCollection.delete_many({})
                 
-            send_status_message(Status_TELEGRAM_CHAT_ID, "📤 Inserting New Analyzed Crypto Data into 'CryptoAnalysis' collection.", flush=True)
+            send_status_message(Status_TELEGRAM_CHAT_ID, "📤 Inserting New Analyzed Crypto Data into 'CryptoAnalysis' collection.")
+            print("📤 Inserting New Analyzed Crypto Data into 'CryptoAnalysis' collection.")
             CryptoDataCollection.insert_many(records)
-            send_status_message(Status_TELEGRAM_CHAT_ID, "✅ MongoDB 'CryptoAnalysis' collection uploaded successfully.", flush=True)
+            send_status_message(Status_TELEGRAM_CHAT_ID, "✅ MongoDB 'CryptoAnalysis' collection uploaded successfully.")
+            print("✅ MongoDB 'CryptoAnalysis' collection uploaded successfully.")
 
     except Exception as e:
         print(f"❌ Error while uploading to MongoDB: {e}")
