@@ -15,17 +15,15 @@ from Functions.BlockMindsStatusBot import send_status_message
 from Functions.Analysis import Analysis
 import sys
 
-# Status TELEGRAM CHAT I'D
-Status_TELEGRAM_CHAT_ID = os.getenv("Status_TELEGRAM_CHAT_ID")
-
-sys.stdout.reconfigure(line_buffering=True)
-
 # Flask app setup
 app = Flask(__name__)
 CORS(app)
 
 LOG_FILE = 'access.log'
 logging.basicConfig(filename=LOG_FILE, level=logging.INFO)
+
+# Status TELEGRAM CHAT I'D
+Status_TELEGRAM_CHAT_ID = os.getenv("Status_TELEGRAM_CHAT_ID")
 
 # Load crypto analysis data
 def load_data():
