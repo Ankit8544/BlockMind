@@ -159,6 +159,12 @@ def telegram_webhook():
 
     return jsonify({"status": "ok"}), 200
 
+@app.route('/keepalive')
+def keep_alive():
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    logging.info(f"🟢 Keepalive ping received at {now}")
+    return jsonify({"status": "alive", "time": now}), 200
+
 # Set WebHook for real time reply
 with app.app_context():
     set_webhook()
