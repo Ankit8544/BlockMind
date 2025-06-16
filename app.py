@@ -6,6 +6,7 @@ import numpy as np
 import os
 import logging
 import re
+import time
 import threading
 from user_agents import parse as parse_ua
 from Functions.MongoDB import get_user_portfolio_data, get_user_meta_data, refersh_cryptodata, get_crypto_data
@@ -32,6 +33,19 @@ def load_data():
     except Exception as e:
         print(f"❌ Error loading crypto analysis data: {e}")
         return pd.DataFrame()
+
+def run_periodic_loader():
+    """Periodically runs load_data every 30 minutes AFTER each successful completion."""
+    while True:
+        try:
+            print("🔄 Starting periodic data load...")
+            load_data()  # This will refresh MongoDB data via refersh_cryptodata inside load_data()
+            print("✅ MongoDB 'CryptoAnalysis' collection uploaded successfully.")
+        except Exception as e:
+            print(f"❌ Error in periodic data load: {e}")
+        finally:
+            print("⏳ Waiting 30 minutes before next load...")
+            time.sleep(600)  # Wait after completion of each run
 
 @app.after_request
 def log_request(response):
@@ -139,11 +153,10 @@ def telegram_webhook():
 with app.app_context():
     set_webhook()
 
-# Start background thread only once when the app starts
-#with app.app_context():
-#    if os.environ.get("FLASK_ENV") == "development":
-#        print("🔹 Background worker started!")
-#        thread = threading.Thread(target=getdata, daemon=True)
-#        thread.start()
-#        print("Thread Started")
-
+# Start the background thread ONCE when the app starts
+with app.app_context():
+    if os.environ.get("FLASK_ENV") == "development":
+        print("🚀 Starting background data loader thread...")
+        loader_thread = threading.Thread(target=run_periodic_loader, daemon=True)
+        loader_thread.start()
+        print("🧵 Data loader thread started.")
