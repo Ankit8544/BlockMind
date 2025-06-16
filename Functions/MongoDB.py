@@ -6,6 +6,7 @@ import re
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 import numpy as np
+import sys
 
 # Load environment variables
 load_dotenv()
@@ -108,12 +109,12 @@ def refersh_cryptodata(df):
             records = df.to_dict(orient='records')
 
             if CryptoDataCollection.count_documents({}) > 0:
-                print("🗑️ Old Crypto Data found in 'CryptoAnalysis' Collection.So We are going to Delete it.")
+                print("🗑️ Old Crypto Data found in 'CryptoAnalysis' Collection.So We are going to Delete it.", flush=True)
                 CryptoDataCollection.delete_many({})
                 
-            print("📤 Inserting New Analyzed Crypto Data into 'CryptoAnalysis' collection.")
+            print("📤 Inserting New Analyzed Crypto Data into 'CryptoAnalysis' collection.", flush=True)
             CryptoDataCollection.insert_many(records)
-            print("✅ MongoDB 'CryptoAnalysis' collection uploaded successfully.")
+            print("✅ MongoDB 'CryptoAnalysis' collection uploaded successfully.", flush=True)
 
     except Exception as e:
         print(f"❌ Error while uploading to MongoDB: {e}")

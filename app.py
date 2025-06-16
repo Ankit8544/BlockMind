@@ -12,6 +12,9 @@ from user_agents import parse as parse_ua
 from Functions.MongoDB import get_user_portfolio_data, get_user_meta_data, refersh_cryptodata, get_crypto_data
 from Functions.TelegramBot import handle_start, handle_message, set_webhook
 from Functions.Analysis import Analysis
+import sys
+
+sys.stdout.reconfigure(line_buffering=True)
 
 # Flask app setup
 app = Flask(__name__)
@@ -24,7 +27,7 @@ logging.basicConfig(filename=LOG_FILE, level=logging.INFO)
 def load_data():
     try:
         df = Analysis()
-        print(f"✅ Based on User Portfolio {df.shape[0]} CryptoCoins Data is loaded successfully in the Flask App.")
+        print(f"✅ Based on User Portfolio {df.shape[0]} CryptoCoins Data is loaded successfully in the Flask App.", flush=True)
         if df is None or df.empty:
             raise ValueError("Analysis() returned an empty DataFrame.")
         
@@ -38,13 +41,14 @@ def run_periodic_loader():
     """Periodically runs load_data every 30 minutes AFTER each successful completion."""
     while True:
         try:
-            print("🔄 Starting periodic data load...")
+            print(f"🔄 Starting periodic data loading at: {datetime.now().strftime('%H:%M:%S')}")
             load_data()  # This will refresh MongoDB data via refersh_cryptodata inside load_data()
             print("✅ MongoDB 'CryptoAnalysis' collection uploaded successfully.")
         except Exception as e:
             print(f"❌ Error in periodic data load: {e}")
         finally:
             print("⏳ Waiting 30 minutes before next load...")
+            print(f"⏰ Next run will be after 30 mins from: {datetime.now().strftime('%H:%M:%S')}")
             time.sleep(600)  # Wait after completion of each run
 
 @app.after_request
