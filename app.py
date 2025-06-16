@@ -131,7 +131,7 @@ def telegram_webhook():
     if text == "/start":
         handle_start(chat_id)
     else:
-        handle_message(chat_id, text)
+        handle_message(chat_id, text, df=pd.DataFrame(get_crypto_data()))
 
     return jsonify({"status": "ok"}), 200
 
