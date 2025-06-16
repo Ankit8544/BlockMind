@@ -33,14 +33,13 @@ def load_data():
     try:
         df = Analysis()
         send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ Based on User Portfolio {df.shape[0]} CryptoCoins Data is loaded successfully in the Flask App.")
-        print(f"✅ Based on User Portfolio {df.shape[0]} CryptoCoins Data is loaded successfully in the Flask App.")
         if df is None or df.empty:
             raise ValueError("Analysis() returned an empty DataFrame.")
         
         refersh_cryptodata(df=df)
         
     except Exception as e:
-        print(f"❌ Error loading crypto analysis data: {e}")
+        send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error loading crypto analysis data: {e}")
         return pd.DataFrame()
 
 def run_periodic_loader():
@@ -51,13 +50,11 @@ def run_periodic_loader():
         try:
             current_ist_time = datetime.now(ist).strftime('%H:%M:%S')
             send_status_message(Status_TELEGRAM_CHAT_ID, f"🔄 Starting periodic data loading at: {current_ist_time}")
-            print(f"🔄 Starting periodic data loading at: {current_ist_time}")
             load_data()  # This will refresh MongoDB data via refresh_cryptodata inside load_data()
         except Exception as e:
-            print(f"❌ Error in periodic data load: {e}")
+            send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error in periodic data load: {e}")
         finally:
             send_status_message(Status_TELEGRAM_CHAT_ID, "⏳ Waiting for 10 minutes to update the data")
-            print("⏳ Waiting for 10 minutes to update the data")
             time.sleep(600)  # Wait after completion of each run
 
 @app.after_request
@@ -83,7 +80,7 @@ def home():
             </html>
         '''
     except Exception as e:
-        print("❌ Error in / route:", str(e))
+        send_status_message(Status_TELEGRAM_CHAT_ID, "❌ Error in / route:", str(e))
         return jsonify({"error": str(e)}), 500
 
 # Flask route to handle the /getdata endpoint
@@ -169,7 +166,7 @@ with app.app_context():
 # Start the background thread ONCE when the app starts
 with app.app_context():
     if os.environ.get("FLASK_ENV") == "development":
-        print("🚀 Starting background data loader thread...")
+        send_status_message(Status_TELEGRAM_CHAT_ID, "🚀 Starting background data loader thread...")
         loader_thread = threading.Thread(target=run_periodic_loader, daemon=True)
         loader_thread.start()
-        print("🧵 Data loader thread started.")
+        send_status_message(Status_TELEGRAM_CHAT_ID, "🧵 Data loader thread started.")

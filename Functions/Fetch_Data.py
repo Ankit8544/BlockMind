@@ -5,11 +5,15 @@ import pandas as pd
 import time
 import concurrent.futures
 import threading
+from Functions.BlockMindsStatusBot import send_status_message 
 
 # Load environment variables
 load_dotenv()
 
 COINGECKO_API_URL = os.getenv("COINGECKO_API_URL")
+
+# Status TELEGRAM CHAT I'D
+Status_TELEGRAM_CHAT_ID = os.getenv("Status_TELEGRAM_CHAT_ID")
 
 # Lock for shared timing (if needed)
 lock = threading.Lock()
@@ -85,11 +89,11 @@ def fetch_coin_data(coin_id):
             }
 
         except requests.exceptions.RequestException as e:
-            print(f"❌ Error fetching data for {coin_id}: {e}")
+            send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error fetching data for {coin_id}: {e}")
             time.sleep(wait_time)
             wait_time *= 1  # exponential backoff
 
-    print(f"❌ Final failure: Could not fetch data for {coin_id} after {MAX_RETRIES} attempts.")
+    send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Final failure: Could not fetch data for {coin_id} after {MAX_RETRIES} attempts.")
     return None
 
 def chunkify(lst, size):

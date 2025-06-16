@@ -48,7 +48,6 @@ cache = TTLCache(maxsize=500, ttl=900)  # Store 100 results for 5 minutes
 def load_data():
     try:
         send_status_message(Status_TELEGRAM_CHAT_ID, "🔄 Loading Crypto Data from CoinGecko using User Portfolio Coin IDs.")
-        print("🔄 Loading Crypto Data from CoinGecko using User Portfolio Coin IDs.")
         
         # Coins you want to fetch data for
         coin_ids = get_coin_ids()  # Replace with your list
@@ -62,11 +61,10 @@ def load_data():
             raise ValueError("No data returned from get_specific_coin_data")
 
         send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ Based on User Portfolio, {df.shape[0]} CryptoCoins data loaded successfully from CoinGecko.")
-        print(f"✅ Based on User Portfolio, {df.shape[0]} CryptoCoins data loaded successfully from CoinGecko.")
         return df
 
     except Exception as e:
-        print(f"❌ Error loading crypto analysis data: {e}")
+        send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error loading crypto analysis data: {e}")
         return pd.DataFrame()
 
 # Function to calculate return multiple
@@ -205,7 +203,6 @@ def Analysis():
     df = load_data()
     
     send_status_message(Status_TELEGRAM_CHAT_ID, "🔄 Start Analyzing the Crypto Data which fetched the Coingecko API")
-    print("🔄 Start Analyzing the Crypto Data which fetched the Coingecko API")
 
     # Select the Coin ID column and convert it to a list
     crypto_Ids = df['Coin ID'].tolist()
@@ -226,11 +223,11 @@ def Analysis():
             elif response.status_code == 429:
                 time.sleep(60)
             else:
-                print(f"Failed to fetch data for {Crypto_Id}: {response.status_code}")
+                send_status_message(Status_TELEGRAM_CHAT_ID, f"Failed to fetch data for {Crypto_Id}: {response.status_code}")
                 break
 
         if not data:
-            print(f"Skipping {Crypto_Id} due to missing data.")
+            send_status_message(Status_TELEGRAM_CHAT_ID, f"Skipping {Crypto_Id} due to missing data.")
             continue
 
         try:
@@ -240,7 +237,7 @@ def Analysis():
             prices.set_index('timestamp', inplace=True)
             
         except KeyError:
-            print(f"Skipping {Crypto_Id} due to missing keys in data.")
+            send_status_message(Status_TELEGRAM_CHAT_ID, f"Skipping {Crypto_Id} due to missing keys in data.")
             continue
 
         # Calculate daily returns
@@ -339,6 +336,5 @@ def Analysis():
 
     df = df.replace({np.nan: None})  # <-- CLEANING
     send_status_message(Status_TELEGRAM_CHAT_ID, "✅ All Analysis Completed Successfully.")
-    print("✅ All Analysis Completed Successfully.")
     return df
 

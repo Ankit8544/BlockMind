@@ -29,16 +29,16 @@ if not MONGO_DB_USERNAME or not MONGO_DB_PASSWORD:
 
 # MongoDB connection setup
 def connect_to_mongo():
-    print("Connecting to MongoDB...")
+    send_status_message(Status_TELEGRAM_CHAT_ID, "Connecting to MongoDB...")
     uri = f"mongodb+srv://{MONGO_DB_USERNAME}:{MONGO_DB_PASSWORD}@cluster0.ou0xiys.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
     
     try:
         client = MongoClient(uri, server_api=ServerApi('1'))
         client.admin.command('ping')
-        print("Pinged your deployment. You successfully connected to MongoDB!")
+        send_status_message(Status_TELEGRAM_CHAT_ID, "Pinged your deployment. You successfully connected to MongoDB!")
         return client
     except Exception as e:
-        print("MongoDB connection error:", e)
+        send_status_message(Status_TELEGRAM_CHAT_ID, "MongoDB connection error:", e)
         return None
 
 # Connect to MongoDB
@@ -88,17 +88,17 @@ def get_coin_ids():
                     if name.strip().lower() not in {m.strip().lower() for m in matched_names}
                 }
                 if unmatched:
-                    print(f"❌ Unmatched Coin Names: {unmatched}")
+                    send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Unmatched Coin Names: {unmatched}")
 
                 return coin_ids
             else:
-                print("❌ 'UserPortfolio' collection not found.")
+                send_status_message(Status_TELEGRAM_CHAT_ID, "❌ 'UserPortfolio' collection not found.")
                 return []
         except Exception as e:
-            print(f"🚨 Error: {e}")
+            send_status_message(Status_TELEGRAM_CHAT_ID, f"🚨 Error: {e}")
             return []
     else:
-        print("❌ MongoDB client is None.")
+        send_status_message(Status_TELEGRAM_CHAT_ID, "❌ MongoDB client is None.")
         return []
 
 # Insert the Newly Analyzed CryptoData 
@@ -114,17 +114,14 @@ def refersh_cryptodata(df):
 
             if CryptoDataCollection.count_documents({}) > 0:
                 send_status_message(Status_TELEGRAM_CHAT_ID, "🗑️ Old Crypto Data found in 'CryptoAnalysis' Collection.So We are going to Delete it.")
-                print("🗑️ Old Crypto Data found in 'CryptoAnalysis' Collection.So We are going to Delete it.")
                 CryptoDataCollection.delete_many({})
                 
             send_status_message(Status_TELEGRAM_CHAT_ID, "📤 Inserting New Analyzed Crypto Data into 'CryptoAnalysis' collection.")
-            print("📤 Inserting New Analyzed Crypto Data into 'CryptoAnalysis' collection.")
             CryptoDataCollection.insert_many(records)
             send_status_message(Status_TELEGRAM_CHAT_ID, "✅ MongoDB 'CryptoAnalysis' collection uploaded successfully.")
-            print("✅ MongoDB 'CryptoAnalysis' collection uploaded successfully.")
 
     except Exception as e:
-        print(f"❌ Error while uploading to MongoDB: {e}")
+        send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error while uploading to MongoDB: {e}")
 
 # Get User Portfolio Coins DB Collection Data in JSON format
 def get_user_portfolio_data():
@@ -140,13 +137,13 @@ def get_user_portfolio_data():
                     Assets.append(doc)
                 return Assets
             else:
-                print("User Portfolio Collection is None. Cannot retrieve data.")
+                send_status_message(Status_TELEGRAM_CHAT_ID, "User Portfolio Collection is None. Cannot retrieve data.")
                 return {}
         else:
-            print("MongoDB client is None. Cannot access user portfolio collection.")
+            send_status_message(Status_TELEGRAM_CHAT_ID, "MongoDB client is None. Cannot access user portfolio collection.")
             return {}
     except Exception as e:
-        print(f"❌ Error retrieving user portfolio collection: {e}")
+        send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error retrieving user portfolio collection: {e}")
         return {}
 
 # Get User Meta Data in JSON format
@@ -163,13 +160,13 @@ def get_user_meta_data():
                     Metadata.append(doc)
                 return Metadata
             else:
-                print("User Meta Collection is None. Cannot retrieve data.")
+                send_status_message(Status_TELEGRAM_CHAT_ID, "User Meta Collection is None. Cannot retrieve data.")
                 return {}
         else:
-            print("MongoDB client is None. Cannot access user meta collection.")
+            send_status_message(Status_TELEGRAM_CHAT_ID, "MongoDB client is None. Cannot access user meta collection.")
             return {}
     except Exception as e:
-        print(f"❌ Error retrieving user meta collection: {e}")
+        send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error retrieving user meta collection: {e}")
         return {}
 
 # Get User Portfolio Based Crypto Data Collection Data in JSON format
@@ -187,12 +184,12 @@ def get_crypto_data():
                     CryptoData.append(doc)
                 return CryptoData
             else:
-                print("CryptoData Collection is None. Cannot retrieve data.")
+                send_status_message(Status_TELEGRAM_CHAT_ID, "CryptoData Collection is None. Cannot retrieve data.")
                 return {}
         else:
-            print("MongoDB client is None. Cannot access user portfolio collection.")
+            send_status_message(Status_TELEGRAM_CHAT_ID, "MongoDB client is None. Cannot access user portfolio collection.")
             return {}
     except Exception as e:
-        print(f"❌ Error retrieving user portfolio collection: {e}")
+        send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error retrieving user portfolio collection: {e}")
         return {}
 
