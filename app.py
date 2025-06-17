@@ -32,7 +32,7 @@ logging.basicConfig(filename=LOG_FILE, level=logging.INFO)
 def load_data():
     try:
         df = Analysis()
-        send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ Based on User Portfolio {df.shape[0]} CryptoCoins Data is loaded successfully in the Flask App.")
+        print(Status_TELEGRAM_CHAT_ID, f"✅ Based on User Portfolio {df.shape[0]} CryptoCoins Data is loaded successfully in the Flask App.")
         if df is None or df.empty:
             raise ValueError("Analysis() returned an empty DataFrame.")
         
@@ -43,18 +43,17 @@ def load_data():
         return pd.DataFrame()
 
 def run_periodic_loader():
-    """Periodically runs load_data every 10 minutes AFTER each successful completion."""
     ist = pytz.timezone('Asia/Kolkata')
     
     while True:
         try:
             current_ist_time = datetime.now(ist).strftime('%H:%M:%S')
-            send_status_message(Status_TELEGRAM_CHAT_ID, f"🔄 Starting periodic data loading at: {current_ist_time}")
+            print(Status_TELEGRAM_CHAT_ID, f"🔄 Starting periodic data loading at: {current_ist_time}")
             load_data()  # This will refresh MongoDB data via refresh_cryptodata inside load_data()
         except Exception as e:
             send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error in periodic data load: {e}")
         finally:
-            send_status_message(Status_TELEGRAM_CHAT_ID, "⏳ Waiting for 10 minutes to update the data")
+            print(Status_TELEGRAM_CHAT_ID, "⏳ Waiting for 10 minutes to update the data")
             time.sleep(600)  # Wait after completion of each run
 
 @app.after_request
@@ -172,7 +171,7 @@ with app.app_context():
 # Start the background thread ONCE when the app starts
 with app.app_context():
     if os.environ.get("FLASK_ENV") == "development":
-        send_status_message(Status_TELEGRAM_CHAT_ID, "🚀 Starting background data loader thread...")
+        print("🚀 Starting background data loader thread...")
         loader_thread = threading.Thread(target=run_periodic_loader, daemon=True)
         loader_thread.start()
-        send_status_message(Status_TELEGRAM_CHAT_ID, "🧵 Data loader thread started.")
+        print("🧵 Data loader thread started.")

@@ -29,13 +29,13 @@ if not MONGO_DB_USERNAME or not MONGO_DB_PASSWORD:
 
 # MongoDB connection setup
 def connect_to_mongo():
-    send_status_message(Status_TELEGRAM_CHAT_ID, "Connecting to MongoDB...")
+    print("Connecting to MongoDB...")
     uri = f"mongodb+srv://{MONGO_DB_USERNAME}:{MONGO_DB_PASSWORD}@cluster0.ou0xiys.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
     
     try:
         client = MongoClient(uri, server_api=ServerApi('1'))
         client.admin.command('ping')
-        send_status_message(Status_TELEGRAM_CHAT_ID, "Pinged your deployment. You successfully connected to MongoDB!")
+        print("Pinged your deployment. You successfully connected to MongoDB!")
         return client
     except Exception as e:
         send_status_message(Status_TELEGRAM_CHAT_ID, "MongoDB connection error:", e)
@@ -113,12 +113,12 @@ def refersh_cryptodata(df):
             records = df.to_dict(orient='records')
 
             if CryptoDataCollection.count_documents({}) > 0:
-                send_status_message(Status_TELEGRAM_CHAT_ID, "🗑️ Old Crypto Data found in 'CryptoAnalysis' Collection.So We are going to Delete it.")
+                print(Status_TELEGRAM_CHAT_ID, "🗑️ Old Crypto Data found in 'CryptoAnalysis' Collection.So We are going to Delete it.")
                 CryptoDataCollection.delete_many({})
                 
-            send_status_message(Status_TELEGRAM_CHAT_ID, "📤 Inserting New Analyzed Crypto Data into 'CryptoAnalysis' collection.")
+            print(Status_TELEGRAM_CHAT_ID, "📤 Inserting New Analyzed Crypto Data into 'CryptoAnalysis' collection.")
             CryptoDataCollection.insert_many(records)
-            send_status_message(Status_TELEGRAM_CHAT_ID, "✅ MongoDB 'CryptoAnalysis' collection uploaded successfully.")
+            print(Status_TELEGRAM_CHAT_ID, "✅ MongoDB 'CryptoAnalysis' collection uploaded successfully.")
 
     except Exception as e:
         send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error while uploading to MongoDB: {e}")
