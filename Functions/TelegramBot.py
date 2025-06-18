@@ -26,28 +26,28 @@ def send_telegram_message(chat_id, message):
         return {"error": str(e)}
 
 def send_telegram_post(chat_id, image_path, caption=None):
-    """
-    Sends a photo (post-style) to a specific Telegram user.
-
-    Parameters:
-    - chat_id: Telegram chat ID
-    - image_path: Path to the image file
-    - caption: Optional message caption (Markdown supported)
-    """
     try:
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto"
-        with open(image_path, "rb") as photo:
-            files = {"photo": photo}
-            data = {
-                "chat_id": chat_id,
-                "parse_mode": "Markdown"
-            }
-            if caption:
-                data["caption"] = caption
-            response = requests.post(url, data=data, files=files)
-            response.raise_for_status()
-            return response.json()
-    except requests.exceptions.RequestException as e:
+        data = {
+            "chat_id": chat_id,
+            "parse_mode": "Markdown",
+        }
+        if caption:
+            data["caption"] = caption
+
+        if image_path.startswith("http://") or image_path.startswith("https://"):
+            # Send remote image URL directly
+            data["photo"] = image_path
+            response = requests.post(url, data=data)
+        else:
+            # Send local file
+            with open(image_path, "rb") as photo:
+                files = {"photo": photo}
+                response = requests.post(url, data=data, files=files)
+
+        response.raise_for_status()
+        return response.json()
+    except Exception as e:
         print(f"❌ Telegram Photo API Error: {e}")
         return {"error": str(e)}
 
