@@ -25,6 +25,7 @@ sys.stdout.reconfigure(line_buffering=True)
 app = Flask(__name__)
 CORS(app)
 
+# Configure logging
 LOG_FILE = 'access.log'
 logging.basicConfig(filename=LOG_FILE, level=logging.INFO)
 
@@ -42,6 +43,7 @@ def load_data():
         send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error loading crypto analysis data: {e}")
         return pd.DataFrame()
 
+# Periodic data loader function
 def run_periodic_loader():
     ist = pytz.timezone('Asia/Kolkata')
     
@@ -56,6 +58,7 @@ def run_periodic_loader():
             print(Status_TELEGRAM_CHAT_ID, "⏳ Waiting for 30 minutes to update the data")
             time.sleep(1800)  # Wait after completion of each run
 
+# Load initial data
 @app.after_request
 def log_request(response):
     logging.info(
@@ -82,7 +85,7 @@ def home():
         send_status_message(Status_TELEGRAM_CHAT_ID, "❌ Error in / route:", str(e))
         return jsonify({"error": str(e)}), 500
 
-# Flask route to handle the /getdata endpoint
+# Flask route to get data
 @app.route('/getdata', methods=['GET'])
 def getdata():
 
@@ -96,6 +99,7 @@ def getdata():
     # Convert to JSON and return
     return jsonify(response)
 
+# Flask route to get logs
 @app.route('/getlogs')
 def get_logs():
     log_entries = []
@@ -140,24 +144,32 @@ def get_logs():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# Flask route to handle Telegram webhook
 @app.route("/webhook", methods=["POST"])
 def telegram_webhook():
-    """Receives Telegram messages and responds."""
     update = request.get_json()
-    
+
     if not update or "message" not in update:
         return jsonify({"status": "ignored"}), 400
-    
-    chat_id = update["message"]["chat"]["id"]
-    text = update["message"].get("text", "").strip().lower()
+
+    message = update["message"]
+    chat_id = message["chat"]["id"]
+    text = message.get("text", "").strip().lower()
+
+    # Extract user info
+    user_info = message.get("from", {})
+    first_name = user_info.get("first_name", "")
+    username = user_info.get("username", "")
+    full_name = first_name or username or "there"
 
     if text == "/start":
-        handle_start(chat_id)
+        handle_start(chat_id, full_name)
     else:
         handle_message(chat_id, text, df=pd.DataFrame(get_crypto_data()))
 
     return jsonify({"status": "ok"}), 200
 
+# Flask route to handle keepalive pings
 @app.route('/keepalive')
 def keep_alive():
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")

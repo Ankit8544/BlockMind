@@ -126,10 +126,10 @@ def get_market_trends():
 def get_crypto_news():
     return "📰 Crypto News: Bitcoin surges 5% after institutional investments increase!"
 
-def handle_start(chat_id):
-    # Caption styled like a UI post
+def handle_start(chat_id,user_name):
+    # Caption styled like a UI post    
     caption = (
-        "👋 *Welcome to the CryptoBot!*\n\n"
+        f"👋 *Welcome {user_name} to the CryptoBot!*\n\n"
         "🔹 *Available Commands:*\n"
         "1️⃣ `/bestcoin` – Get the best coin recommendation\n"
         "2️⃣ `/trends` – See the latest market trends\n"
@@ -137,6 +137,7 @@ def handle_start(chat_id):
         "💬 *Chat with AI:* Just type any question!\n\n"
         "⚙️ Powered by *BlockMinds.AI* 🚀"
     )
+    
     
     # Image to send (must be accessible publicly or use multipart/form upload)
     IMAGE_PATH = "https://img.favpng.com/24/9/12/vector-graphics-blockchain-computer-icons-logo-illustration-png-favpng-91s9EcZD7v8JqGgfdLZFfzWqb.jpg"  # Local path
