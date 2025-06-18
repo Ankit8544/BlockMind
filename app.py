@@ -124,6 +124,7 @@ def receive_crypto_coins_detail_from_power_app():
 
         # Step 3: Handle and format purchase date: ensure it's in string ISO format (YYYY-MM-DD)
         try:
+            import datetime
             purchase_date_str = data['Purchase Date']
             try:
                 parsed_date = datetime.datetime.strptime(purchase_date_str, "%Y-%m-%d")
@@ -133,6 +134,8 @@ def receive_crypto_coins_detail_from_power_app():
         except Exception:
             return jsonify({"success": 'False', "message": "Invalid date format. Use YYYY-MM-DD or MM/DD/YYYY."}), 200
 
+        from datetime import datetime
+        
         # Step 4: Normalize data
         cleaned_data = {
             "user_mail": data['User Mail'].strip(),       # normalize email
