@@ -10,16 +10,14 @@ import re
 import time
 import threading
 from user_agents import parse as parse_ua
-from Functions.MongoDB import get_user_portfolio_data, get_user_meta_data, refersh_cryptodata, get_crypto_data
+from Functions.MongoDB import UserPortfolio_Data, UserMetadata_Data, refersh_cryptodata, CryptoCoins_Data, is_valid_crypto_symbol, validate_crypto_payload, CryptoCoinList_Data, validate_crypto_payload, UserMetadata_Collection, UserPortfolioCoin_Collection
 from Functions.TelegramBot import handle_start, handle_message, set_webhook
 from Functions.BlockMindsStatusBot import send_status_message
 from Functions.Analysis import Analysis
-import sys
+from Functions.UserMetaData import user_metadata
 
 # Status TELEGRAM CHAT I'D
 Status_TELEGRAM_CHAT_ID = os.getenv("Status_TELEGRAM_CHAT_ID")
-
-sys.stdout.reconfigure(line_buffering=True)
 
 # Flask app setup
 app = Flask(__name__)
@@ -85,15 +83,117 @@ def home():
         send_status_message(Status_TELEGRAM_CHAT_ID, "❌ Error in / route:", str(e))
         return jsonify({"error": str(e)}), 500
 
+@app.route('/receive-coins-from-power-app', methods=['POST'])
+def receive_crypto_coins_detail_from_power_app():
+    try:
+        data = request.json
+
+        # Step 1: Basic field presence check (original keys)
+        required_fields = ["User Mail", "Name of Coin", "Coin Symbol", "Purchase Date"]
+        missing_fields = []
+        blank_fields = []
+
+        for field in required_fields:
+            if field not in data:
+                missing_fields.append(field)
+            elif str(data[field]).strip() == "":
+                blank_fields.append(field)
+
+        if missing_fields or blank_fields:
+            errors = []
+            if missing_fields:
+                errors.append(f"Missing fields: {', '.join(missing_fields)}")
+            if blank_fields:
+                errors.append(f"Blank fields: {', '.join(blank_fields)}")
+            return jsonify({
+                "success": False,
+                "message": " | ".join(errors)
+            }), 200
+
+        # Step 2: Validate coin name and symbol
+        coin_symbol = data['Coin Symbol']
+        coin_name = data['Name of Coin']
+        validation_result = is_valid_crypto_symbol(coin_symbol, coin_name)
+
+        if validation_result == "name_not_found":
+            return jsonify({"success": 'False', "message": "No coin available with this name"}), 200
+        elif validation_result == "symbol_mismatch":
+            return jsonify({"success": 'False', "message": "Symbol not aligned with the name"}), 200
+        elif validation_result != "valid":
+            return jsonify({"success": 'False', "message": "Coin validation failed due to API or network error"}), 200
+
+        # Step 3: Handle and format purchase date: ensure it's in string ISO format (YYYY-MM-DD)
+        try:
+            purchase_date_str = data['Purchase Date']
+            try:
+                parsed_date = datetime.datetime.strptime(purchase_date_str, "%Y-%m-%d")
+            except ValueError:
+                parsed_date = datetime.datetime.strptime(purchase_date_str, "%m/%d/%Y")
+            iso_date = parsed_date.strftime("%Y-%m-%d")
+        except Exception:
+            return jsonify({"success": 'False', "message": "Invalid date format. Use YYYY-MM-DD or MM/DD/YYYY."}), 200
+
+        # Step 4: Normalize data
+        cleaned_data = {
+            "user_mail": data['User Mail'].strip(),       # normalize email
+            "coin_name": coin_name.strip(),
+            "coin_symbol": coin_symbol.strip().lower(),
+            "purchase_date": iso_date                             # ISO string format
+        }
+        
+        # Step 6: Insert User Metadata
+        try:
+            # Initialize collection
+            UserMetaDataCollection = UserMetadata_Collection()
+            
+            # Check for existing user by email
+            existing_user = UserMetaDataCollection.find_one({"mail_address": cleaned_data['user_mail']})
+
+            if existing_user:
+                print(f"User with email {cleaned_data['user_mail']} already exists. Skipping insertion.")
+            else:
+                print("Inserting User MetaData:")
+                try:
+                    # Create a proper UserDetail dictionary 
+                    UserDetail = user_metadata(cleaned_data['user_mail'])
+                    UserMetaDataCollection.insert_one(UserDetail)
+                    print("User MetaData inserted successfully.")
+                except Exception as e:
+                    print(f"⚠️ Skipping User Metadata insertion due to error: {e}")
+        except Exception as e:
+            print(f"⚠️ Failed to process User Metadata logic: {e}")
+        
+        # Step 7: Validate MongoDB Payload Format
+        is_valid, msg = validate_crypto_payload(cleaned_data)
+        if not is_valid:
+            return jsonify({"success": 'False', "message": msg}), 200
+
+        # Step 8: Insert into MongoDB
+        UserPortfolioCollection = UserPortfolioCoin_Collection()
+        result = UserPortfolioCollection.insert_one(cleaned_data)
+        print(f"✅ Data inserted with ID: {result.inserted_id}")
+        print(f"Inserted data: {cleaned_data}")
+
+        # Step 9: Return success response
+        print("🚀 Crypto investment data saved successfully.")
+        return jsonify({
+            "success": 'True',
+            "message": "Crypto investment data saved successfully.",
+            "id": str(result.inserted_id)
+        }), 200
+
+    except Exception as e:
+        return jsonify({"success": 'False', "message": str(e)}), 200
+
 # Flask route to get data
 @app.route('/getdata', methods=['GET'])
 def getdata():
 
     # Return both dataframes as a JSON response
     response = {
-        "User Meta Data": get_user_meta_data(),
-        "User Portfolio": get_user_portfolio_data(),
-        "User Portfolio Based Crypto Data": get_crypto_data()
+        "User Meta Data": UserMetadata_Data(),
+        "User Portfolio": UserPortfolio_Data(),
+        "User Portfolio Based Crypto Data": CryptoCoins_Data()
     }
     
     # Convert to JSON and return
@@ -165,7 +265,7 @@ def telegram_webhook():
     if text == "/start":
         handle_start(chat_id, full_name)
     else:
-        handle_message(chat_id, text, df=pd.DataFrame(get_crypto_data()))
+        handle_message(chat_id, text, df=pd.DataFrame(CryptoCoins_Data()))
 
     return jsonify({"status": "ok"}), 200
 
