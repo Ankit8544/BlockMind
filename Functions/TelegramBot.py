@@ -25,6 +25,32 @@ def send_telegram_message(chat_id, message):
         print(f"❌ Telegram API Error: {e}")
         return {"error": str(e)}
 
+def send_telegram_post(chat_id, image_path, caption=None):
+    """
+    Sends a photo (post-style) to a specific Telegram user.
+
+    Parameters:
+    - chat_id: Telegram chat ID
+    - image_path: Path to the image file
+    - caption: Optional message caption (Markdown supported)
+    """
+    try:
+        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto"
+        with open(image_path, "rb") as photo:
+            files = {"photo": photo}
+            data = {
+                "chat_id": chat_id,
+                "parse_mode": "Markdown"
+            }
+            if caption:
+                data["caption"] = caption
+            response = requests.post(url, data=data, files=files)
+            response.raise_for_status()
+            return response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Telegram Photo API Error: {e}")
+        return {"error": str(e)}
+
 def format_large_number(num):
     if num >= 1_000_000_000_000:  # Trillion
         return f"{num / 1_000_000_000_000:.2f} Trillion"
@@ -101,17 +127,22 @@ def get_crypto_news():
     return "📰 Crypto News: Bitcoin surges 5% after institutional investments increase!"
 
 def handle_start(chat_id):
-    """Handles the /start command and sends a welcome message."""
-    message = (
-        "👋 *Welcome to the Crypto Bot!*\n\n"
+    # Caption styled like a UI post
+    caption = (
+        "👋 *Welcome to the CryptoBot!*\n\n"
         "🔹 *Available Commands:*\n"
-        "1️⃣ `/bestcoin` - Get the best coin recommendation\n"
-        "2️⃣ `/trends` - See the latest market trends\n"
-        "3️⃣ `/news` - Get the latest crypto news\n\n"
-        "💬 *Chat with AI:* Simply type any question!"
+        "1️⃣ `/bestcoin` – Get the best coin recommendation\n"
+        "2️⃣ `/trends` – See the latest market trends\n"
+        "3️⃣ `/news` – Get the latest crypto news\n\n"
+        "💬 *Chat with AI:* Just type any question!\n\n"
+        "⚙️ Powered by *BlockMinds.AI* 🚀"
     )
-    print(f"📩 Sending welcome message to chat ID: {chat_id}")
-    send_telegram_message(chat_id, message)
+    
+    # Image to send (must be accessible publicly or use multipart/form upload)
+    IMAGE_PATH = "https://img.favpng.com/24/9/12/vector-graphics-blockchain-computer-icons-logo-illustration-png-favpng-91s9EcZD7v8JqGgfdLZFfzWqb.jpg"  # Local path
+    
+    print(f"📩 Sending welcome post to chat ID: {chat_id}")
+    send_telegram_post(chat_id, IMAGE_PATH, caption=caption)
 
 def handle_message(chat_id, user_message, df):
 
