@@ -53,8 +53,8 @@ def run_periodic_loader():
         except Exception as e:
             send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error in periodic data load: {e}")
         finally:
-            print(Status_TELEGRAM_CHAT_ID, "⏳ Waiting for 10 minutes to update the data")
-            time.sleep(600)  # Wait after completion of each run
+            print(Status_TELEGRAM_CHAT_ID, "⏳ Waiting for 30 minutes to update the data")
+            time.sleep(1800)  # Wait after completion of each run
 
 @app.after_request
 def log_request(response):
