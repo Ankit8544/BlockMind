@@ -49,10 +49,9 @@ def run_periodic_loader():
     
     while True:
         try:
-            print(f"🔄 Starting periodic data loading at: {datetime.now(ist).strftime('%H:%M:%S')}")
+            send_status_message(Status_TELEGRAM_CHAT_ID, f"🔄 Starting periodic data load at {datetime.now(ist).strftime('%H:%M:%S')}.")
             load_data()  # This will refresh MongoDB data via refresh_cryptodata inside load_data()
             send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ MongoDB 'CryptoAnalysis' collection uploaded successfully at {datetime.now(ist).strftime('%H:%M:%S')}.")
-            print(f"✅ MongoDB 'CryptoAnalysis' collection uploaded successfully at {datetime.now(ist).strftime('%H:%M:%S')}.")
         
         except Exception as e:
             send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error in periodic data load: {e}")
@@ -297,6 +296,3 @@ with app.app_context():
         loader_thread = threading.Thread(target=run_periodic_loader, daemon=True)
         loader_thread.start()
         print("🧵 Data loader thread started.")
-
-#if __name__ == '__main__':
-#    app.run()
