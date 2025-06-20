@@ -290,7 +290,8 @@ with app.app_context():
 
 # Start the background thread ONCE when the app starts
 with app.app_context():
-    print(f"Flask ENV: {os.environ.get("FLASK_ENV")}")
+    Flask_ENV = os.environ.get("FLASK_ENV", "production")
+    print(f"Flask ENV: {Flask_ENV}")
     if os.environ.get("FLASK_ENV") == "development":
         print("🚀 Starting background data loader thread.")
         loader_thread = threading.Thread(target=run_periodic_loader, daemon=True)
