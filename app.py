@@ -27,11 +27,14 @@ CORS(app)
 LOG_FILE = 'access.log'
 logging.basicConfig(filename=LOG_FILE, level=logging.INFO)
 
+# Set timezone for status messages
+ist = pytz.timezone('Asia/Kolkata')
+
 # Load crypto analysis data
 def load_data():
     try:
         df = Analysis()
-        print(f"✅ Based on User Portfolio {df.shape[0]} CryptoCoins Data is loaded successfully in the Flask App.")
+        print(f"✅ Based on User Portfolio {df.shape[0]} CryptoCoins Data is loaded successfully in the Flask App. {datetime.now(ist).strftime('%H:%M:%S')}")
         if df is None or df.empty:
             raise ValueError("Analysis() returned an empty DataFrame.")
         
@@ -43,16 +46,17 @@ def load_data():
 
 # Periodic data loader function
 def run_periodic_loader():
-    ist = pytz.timezone('Asia/Kolkata')
     
     while True:
         try:
-            current_ist_time = datetime.now(ist).strftime('%H:%M:%S')
-            print(Status_TELEGRAM_CHAT_ID, f"🔄 Starting periodic data loading at: {current_ist_time}")
+            print(f"🔄 Starting periodic data loading at: {datetime.now(ist).strftime('%H:%M:%S')}")
             load_data()  # This will refresh MongoDB data via refresh_cryptodata inside load_data()
-            send_status_message(f"✅ MongoDB 'CryptoAnalysis' collection uploaded successfully at {current_ist_time}.")
+            send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ MongoDB 'CryptoAnalysis' collection uploaded successfully at {datetime.now(ist).strftime('%H:%M:%S')}.")
+            print(f"✅ MongoDB 'CryptoAnalysis' collection uploaded successfully at {datetime.now(ist).strftime('%H:%M:%S')}.")
+        
         except Exception as e:
             send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error in periodic data load: {e}")
+        
         finally:
             print(Status_TELEGRAM_CHAT_ID, "⏳ Waiting for 30 minutes to update the data")
             time.sleep(1800)  # Wait after completion of each run
@@ -286,8 +290,12 @@ with app.app_context():
 
 # Start the background thread ONCE when the app starts
 with app.app_context():
+    print(f"Flask ENV: {os.environ.get("FLASK_ENV")}")
     if os.environ.get("FLASK_ENV") == "development":
-        print("🚀 Starting background data loader thread...")
+        print("🚀 Starting background data loader thread.")
         loader_thread = threading.Thread(target=run_periodic_loader, daemon=True)
         loader_thread.start()
         print("🧵 Data loader thread started.")
+
+#if __name__ == '__main__':
+#    app.run()
