@@ -31,7 +31,7 @@ logging.basicConfig(filename=LOG_FILE, level=logging.INFO)
 def load_data():
     try:
         df = Analysis()
-        print(Status_TELEGRAM_CHAT_ID, f"✅ Based on User Portfolio {df.shape[0]} CryptoCoins Data is loaded successfully in the Flask App.")
+        print(f"✅ Based on User Portfolio {df.shape[0]} CryptoCoins Data is loaded successfully in the Flask App.")
         if df is None or df.empty:
             raise ValueError("Analysis() returned an empty DataFrame.")
         
@@ -50,6 +50,7 @@ def run_periodic_loader():
             current_ist_time = datetime.now(ist).strftime('%H:%M:%S')
             print(Status_TELEGRAM_CHAT_ID, f"🔄 Starting periodic data loading at: {current_ist_time}")
             load_data()  # This will refresh MongoDB data via refresh_cryptodata inside load_data()
+            send_status_message(f"✅ MongoDB 'CryptoAnalysis' collection uploaded successfully at {current_ist_time}.")
         except Exception as e:
             send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error in periodic data load: {e}")
         finally:

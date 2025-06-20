@@ -51,14 +51,12 @@ def load_data():
         
         # Coins you want to fetch data for
         coin_ids = get_coin_ids()  # Replace with your list
-        print("✅ Retrieved Coin IDs:", coin_ids)
         
         if not coin_ids:
             raise ValueError("No coin IDs returned from get_coin_ids()")
 
         df = get_specific_coin_data(coin_ids=coin_ids)
-        print(f"✅ DataFrame shape: {df.shape}")
-        
+
         if df.empty:
             raise ValueError("No data returned from get_specific_coin_data")
 
