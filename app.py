@@ -268,6 +268,7 @@ def telegram_webhook():
     first_name = user_info.get("first_name", "")
     username = user_info.get("username", "")
     full_name = first_name or username or "there"
+    print(f"Received message from {full_name} (ID: {chat_id}): {text}")
 
     if text == "/start":
         handle_start(chat_id, full_name)
