@@ -260,15 +260,23 @@ def telegram_webhook():
         return jsonify({"status": "ignored"}), 400
 
     message = update["message"]
+    print(f"Received message: {message}")
     chat_id = message["chat"]["id"]
+    print(f"Chat ID: {chat_id}")
     text = message.get("text", "").strip().lower()
+    print(f"Message text: {text}")
 
     # Extract user info
     user_info = message.get("from", {})
+    print(f"User info: {user_info}")
     first_name = user_info.get("first_name", "")
+    print(f"First name: {first_name}")
+    last_name = user_info.get("last_name", "")
+    print(f"Last name: {last_name}")
     username = user_info.get("username", "")
+    print(f"Username: {username}")
     full_name = first_name or username or "there"
-    print(f"Received message from {full_name} (ID: {chat_id}): {text}")
+    print(f"Full name: {full_name}")
 
     if text == "/start":
         handle_start(chat_id, full_name)
@@ -276,6 +284,51 @@ def telegram_webhook():
         handle_message(chat_id, text, df=pd.DataFrame(CryptoCoins_Data()))
 
     return jsonify({"status": "ok"}), 200
+
+# ✅ Flask route to add Telegram username WITHOUT verifying it
+@app.route('/subscribe', methods=['POST'])
+def add_telegram_username():
+    try:
+        data = request.json
+        email = data.get("email")
+        telegram_username = data.get("telegram_username")
+
+        if not email or not telegram_username:
+            return jsonify({
+                "success": False,
+                "message": "Both 'email' and 'telegram_username' are required."
+            }), 400
+
+        # ✅ SKIP: no sending message, no checking UserMetadata
+
+        # ✅ Directly update all UserPortfolio docs with this email:
+        portfolio_collection = UserPortfolioCoin_Collection()
+        result = portfolio_collection.update_many(
+            {"user_mail": email},
+            {
+                "$set": {
+                    "telegram_username": telegram_username
+                }
+            },
+            upsert=False
+        )
+
+        if result.matched_count == 0:
+            return jsonify({
+                "success": False,
+                "message": f"No user portfolio found for email: {email}"
+            }), 404
+
+        return jsonify({
+            "success": True,
+            "message": f"✅ Telegram username '{telegram_username}' saved for all portfolio entries for email '{email}'."
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": str(e)
+        }), 500
 
 # Flask route to handle keepalive pings
 @app.route('/keepalive')
@@ -297,3 +350,7 @@ with app.app_context():
         loader_thread = threading.Thread(target=run_periodic_loader, daemon=True)
         loader_thread.start()
         print("🧵 Data loader thread started.")
+
+if __name__ == '__main__':
+    # Run the Flask app
+    app.run()
