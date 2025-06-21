@@ -171,8 +171,7 @@ def handle_start(chat_id,user_name):
         "💬 *Chat with AI:* Just type any question!\n\n"
         "⚙️ Developed by [Ankit Kumar Sharma](https://ankit-sharma-07.netlify.app/) 🚀"
     )
-    
-    
+
     # Image to send (must be accessible publicly or use multipart/form upload)
     IMAGE_PATH = "https://img.favpng.com/24/9/12/vector-graphics-blockchain-computer-icons-logo-illustration-png-favpng-91s9EcZD7v8JqGgfdLZFfzWqb.jpg"  # Local path
     
