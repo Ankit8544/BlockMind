@@ -174,14 +174,19 @@ def handle_start(chat_id,user_name):
     print(f"📩 Sending welcome post to chat ID: {chat_id}")
     send_telegram_post(chat_id, IMAGE_PATH, caption=caption)
 
-def handle_message(chat_id, user_message, df, username):
+def handle_message(chat_id, user_message, df=None, username=None):
 
     # Prevent spam: Limit the frequency of `/bestcoin` command
     if user_message == "/bestcoin":
-        send_telegram_message(chat_id, "⏳ Please wait...")
-        response = Coin_Updates(username=username)
-        print(f"📩 Sending Best Coin Details to chat ID: {chat_id}")
-        send_telegram_message(chat_id, response)
+        try:
+            send_telegram_message(chat_id, "⏳ Please wait...")
+            print(f"🔎 Fetching best coin for username: {username}")
+            response = Coin_Updates(username=username)
+            print(f"📩 Sending Best Coin Details to chat ID: {chat_id}")
+            send_telegram_message(chat_id, response)
+        except Exception as e:
+            print(f"❌ Error in /bestcoin: {e}")
+            send_telegram_message(chat_id, f"⚠️ Failed to get best coin. Error: {e}")
     
     elif user_message == "/trends":
         send_telegram_message(chat_id, "⏳ Please wait...")
