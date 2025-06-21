@@ -103,11 +103,6 @@ def Coin_Updates(username):
         if df.empty:
             return "⚠️ No matching coins found in analyzed crypto data."
 
-        # Printing DataFrame shape and columns for debugging
-        print(f"🧪 Final DataFrame shape before iterating: {df.shape}")
-        print(f"📋 Columns in DataFrame: {df.columns.tolist()}")
-        print(f"🔍 Sample Data:\n{df.head(1)}")
-
         try:
             for index, row in df.iterrows():
                 coin_name = row.get("Coin Name", "N/A")
@@ -174,7 +169,7 @@ def handle_start(chat_id,user_name):
         "2️⃣ `/trends` – See the latest market trends\n"
         "3️⃣ `/news` – Get the latest crypto news\n\n"
         "💬 *Chat with AI:* Just type any question!\n\n"
-        "⚙️ Powered by *BlockMinds.AI* 🚀"
+        "⚙️ Developed by [Ankit Kumar Sharma](https://ankit-sharma-07.netlify.app/) 🚀"
     )
     
     

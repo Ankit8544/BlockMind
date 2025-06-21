@@ -345,5 +345,4 @@ with app.app_context():
         print("🧵 Data loader thread started.")
 
 if __name__ == '__main__':
-    # Run the Flask app
     app.run()
