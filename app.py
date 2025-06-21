@@ -260,28 +260,22 @@ def telegram_webhook():
         return jsonify({"status": "ignored"}), 400
 
     message = update["message"]
-    print(f"Received message: {message}")
     chat_id = message["chat"]["id"]
-    print(f"Chat ID: {chat_id}")
     text = message.get("text", "").strip().lower()
-    print(f"Message text: {text}")
 
     # Extract user info
     user_info = message.get("from", {})
-    print(f"User info: {user_info}")
     first_name = user_info.get("first_name", "")
-    print(f"First name: {first_name}")
     last_name = user_info.get("last_name", "")
-    print(f"Last name: {last_name}")
     username = user_info.get("username", "")
     print(f"Username: {username}")
-    full_name = first_name or username or "there"
-    print(f"Full name: {full_name}")
+    full_name = f"{first_name} {last_name}"
+    print(f"Received message from {full_name} ({username}) in chat {chat_id}: {text}")
 
     if text == "/start":
         handle_start(chat_id, full_name)
     else:
-        handle_message(chat_id, text, df=pd.DataFrame(CryptoCoins_Data()))
+        handle_message(chat_id, text, username=username)
 
     return jsonify({"status": "ok"}), 200
 

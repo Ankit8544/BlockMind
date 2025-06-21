@@ -2,7 +2,9 @@ import os
 import requests
 import google.generativeai as genai
 from dotenv import load_dotenv
+import pandas as pd
 from Functions.GeminiAI import AI_Generated_Answer
+from Functions.MongoDB import CryptoCoins_Data, UserPortfolio_Data
 import time
 start_time = time.time()
 
@@ -63,7 +65,7 @@ def format_large_number(num):
     else:
         return str(num)  # No conversion needed for small numbers
 
-def get_best_coin(df):
+def Coin_Updates(username):
     messages = []  # To store messages for all rows
     # Get the current USD to INR exchange rate
     url = "https://open.er-api.com/v6/latest/USD"
@@ -76,6 +78,14 @@ def get_best_coin(df):
             raise ValueError("INR exchange rate not found in API response.")
     else:
         raise ConnectionError(f"Failed to fetch exchange rates. Status code: {response.status_code}")
+
+    df = pd.DataFrame(UserPortfolio_Data())
+    df = df[df['telegram_username'] == username]
+    CoinList = df['coin_name'].to_list()
+    print(f"🔍 Fetching best coin for user: {username} with coins: {CoinList}")
+
+    df = pd.DataFrame(CryptoCoins_Data())
+    df = df[df['Coin Name'].isin(CoinList)]
 
     try:
         for index, row in df.iterrows():
@@ -145,12 +155,12 @@ def handle_start(chat_id,user_name):
     print(f"📩 Sending welcome post to chat ID: {chat_id}")
     send_telegram_post(chat_id, IMAGE_PATH, caption=caption)
 
-def handle_message(chat_id, user_message, df):
+def handle_message(chat_id, user_message, df, username):
 
     # Prevent spam: Limit the frequency of `/bestcoin` command
     if user_message == "/bestcoin":
         send_telegram_message(chat_id, "⏳ Please wait...")
-        response = get_best_coin(df=df)
+        response = Coin_Updates(username=username)
         print(f"📩 Sending Best Coin Details to chat ID: {chat_id}")
         send_telegram_message(chat_id, response)
     
