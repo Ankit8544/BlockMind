@@ -67,6 +67,7 @@ def format_large_number(num):
 
 def Coin_Updates(username):
     messages = []  # To store messages for all rows
+    
     # Get the current USD to INR exchange rate
     url = "https://open.er-api.com/v6/latest/USD"
     response = requests.get(url)
@@ -79,54 +80,72 @@ def Coin_Updates(username):
     else:
         raise ConnectionError(f"Failed to fetch exchange rates. Status code: {response.status_code}")
 
-    df = pd.DataFrame(UserPortfolio_Data())
-    df = df[df['telegram_username'] == username]
-    CoinList = df['coin_name'].to_list()
-    print(f"🔍 Fetching best coin for user: {username} with coins: {CoinList}")
-
-    df = pd.DataFrame(CryptoCoins_Data())
-    df = df[df['Coin Name'].isin(CoinList)]
+        messages = []
 
     try:
-        for index, row in df.iterrows():
-            coin_name = row.get("Coin Name")
-            current_price = row.get("Current Price")
-            market_cap = row.get("Market Cap")
-            rank = row.get("Market Cap Rank")
-            High_Price = row.get("24h High Price")
-            Low_Price = row.get("24h Low Price")
-            price_change = row.get("24h Price Change")
-            if price_change is not None:
-                if price_change < 0:
-                    price_change = f"-₹{abs(price_change)}"
-                else:
-                    price_change = f"+₹{price_change}"
-            price_change_percentage = row.get("24h Price Change Percentage (%)")
-            market_cap_change = row.get("24h Market Cap Change")
-            if market_cap_change is not None:
-                if market_cap_change < 0:
-                    market_cap_change = f"-₹{abs(market_cap_change):,.2f}"
-                else:
-                    market_cap_change = f"+₹{market_cap_change:,.2f}"
-            market_cap_change_percentage = row.get("24h Market Cap Change Percentage (%)")
-            all_time_high_price = row.get("All-Time High Price")
-            all_time_high_price_percentage = row.get("All-Time High Price Percentage (%)")
-            if all_time_high_price_percentage is None:
-                all_time_high_price_percentage = 0
-            else:
-                all_time_high_price_percentage
-            
-            message = (f"Coin Name: {coin_name}\n"
-                    f"💰 Current Price: ₹{(current_price * usd_to_inr)}\n"
-                    f"Market Cap: ₹{format_large_number(market_cap * usd_to_inr)} (Rank #{rank})\n"
-                    f"24h High / Low: ₹{(High_Price * usd_to_inr):.2f} / ₹{(Low_Price * usd_to_inr):.2f}\n"
-                    f"24h Price Change: {price_change} ({price_change_percentage:.2f}%)\n"
-                    f"24h Market Cap Change: {market_cap_change.split('₹')[0]}₹{format_large_number((float(market_cap_change.split('₹')[1].replace(',', ''))) * usd_to_inr)} ({market_cap_change_percentage:.2f}%)\n"
-                    f"All-Time High (ATH): ₹{(all_time_high_price * usd_to_inr):.2f} (📉 {all_time_high_price_percentage}% from ATH)\n")
-            
-            messages.append(message)
-        return '\n'.join(messages)
+        user_data = UserPortfolio_Data()
+        if not user_data:
+            return "⚠️ No user portfolio data found."
 
+        user_df = pd.DataFrame(user_data)
+        user_df = user_df[user_df['telegram_username'] == username]
+        if user_df.empty:
+            return f"⚠️ No coin data found for username: {username}"
+
+        coin_list = user_df['coin_name'].to_list()
+
+        crypto_data = CryptoCoins_Data()
+        if not crypto_data:
+            return "⚠️ No crypto data available right now. Please try again later."
+
+        df = pd.DataFrame(crypto_data)
+        df = df[df['Coin Name'].isin(coin_list)]
+        if df.empty:
+            return "⚠️ No matching coins found in analyzed crypto data."
+
+        try:
+            for index, row in df.iterrows():
+                coin_name = row.get("Coin Name")
+                current_price = row.get("Current Price")
+                market_cap = row.get("Market Cap")
+                rank = row.get("Market Cap Rank")
+                High_Price = row.get("24h High Price")
+                Low_Price = row.get("24h Low Price")
+                price_change = row.get("24h Price Change")
+                if price_change is not None:
+                    if price_change < 0:
+                        price_change = f"-₹{abs(price_change)}"
+                    else:
+                        price_change = f"+₹{price_change}"
+                price_change_percentage = row.get("24h Price Change Percentage (%)")
+                market_cap_change = row.get("24h Market Cap Change")
+                if market_cap_change is not None:
+                    if market_cap_change < 0:
+                        market_cap_change = f"-₹{abs(market_cap_change):,.2f}"
+                    else:
+                        market_cap_change = f"+₹{market_cap_change:,.2f}"
+                market_cap_change_percentage = row.get("24h Market Cap Change Percentage (%)")
+                all_time_high_price = row.get("All-Time High Price")
+                all_time_high_price_percentage = row.get("All-Time High Price Percentage (%)")
+                if all_time_high_price_percentage is None:
+                    all_time_high_price_percentage = 0
+                else:
+                    all_time_high_price_percentage
+                
+                message = (f"Coin Name: {coin_name}\n"
+                        f"💰 Current Price: ₹{(current_price * usd_to_inr)}\n"
+                        f"Market Cap: ₹{format_large_number(market_cap * usd_to_inr)} (Rank #{rank})\n"
+                        f"24h High / Low: ₹{(High_Price * usd_to_inr):.2f} / ₹{(Low_Price * usd_to_inr):.2f}\n"
+                        f"24h Price Change: {price_change} ({price_change_percentage:.2f}%)\n"
+                        f"24h Market Cap Change: {market_cap_change.split('₹')[0]}₹{format_large_number((float(market_cap_change.split('₹')[1].replace(',', ''))) * usd_to_inr)} ({market_cap_change_percentage:.2f}%)\n"
+                        f"All-Time High (ATH): ₹{(all_time_high_price * usd_to_inr):.2f} (📉 {all_time_high_price_percentage}% from ATH)\n")
+                
+                messages.append(message)
+            return '\n'.join(messages)
+
+        except Exception as e:
+            return f"⚠️ Error fetching best coin due to {e}. Try again later."
+    
     except Exception as e:
         return f"⚠️ Error fetching best coin due to {e}. Try again later."
 
