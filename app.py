@@ -268,9 +268,8 @@ def telegram_webhook():
     first_name = user_info.get("first_name", "")
     last_name = user_info.get("last_name", "")
     username = user_info.get("username", "")
-    print(f"Username: {username}")
     full_name = f"{first_name} {last_name}"
-    print(f"Received message from {full_name} ({username}) in chat {chat_id}: {text}")
+    print(f"Received message from {full_name} with the username as '{username}' in chat {chat_id}: {text}")
 
     if text == "/start":
         handle_start(chat_id, full_name)
@@ -345,3 +344,6 @@ with app.app_context():
         loader_thread.start()
         print("🧵 Data loader thread started.")
 
+if __name__ == '__main__':
+    # Run the Flask app
+    app.run()
