@@ -103,6 +103,11 @@ def Coin_Updates(username):
         if df.empty:
             return "⚠️ No matching coins found in analyzed crypto data."
 
+        # Printing DataFrame shape and columns for debugging
+        print(f"🧪 Final DataFrame shape before iterating: {df.shape}")
+        print(f"📋 Columns in DataFrame: {df.columns.tolist()}")
+        print(f"🔍 Sample Data:\n{df.head(1)}")
+
         try:
             for index, row in df.iterrows():
                 coin_name = row.get("Coin Name")
