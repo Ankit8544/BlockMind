@@ -274,7 +274,7 @@ def telegram_webhook():
     if text == "/start":
         handle_start(chat_id, full_name)
     else:
-        handle_message(chat_id, text, username=username)
+        handle_message(chat_id, text, username=username, full_name=full_name)
 
     return jsonify({"status": "ok"}), 200
 

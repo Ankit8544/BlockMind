@@ -179,7 +179,7 @@ def handle_start(chat_id,user_name):
     print(f"📩 Sending welcome post to chat ID: {chat_id}")
     send_telegram_post(chat_id, IMAGE_PATH, caption=caption)
 
-def handle_message(chat_id, user_message, df=None, username=None):
+def handle_message(chat_id, user_message, df=None, username=None, full_name=None):
 
     # Prevent spam: Limit the frequency of `/bestcoin` command
     if user_message == "/bestcoin":
@@ -204,6 +204,12 @@ def handle_message(chat_id, user_message, df=None, username=None):
         response = get_crypto_news()
         print(f"📩 Sending Latest Crypto News to chat ID: {chat_id}")
         send_telegram_message(chat_id, response)
+
+    elif user_message in ["hi", "hlo", "hello", "hey", "yo", "heyy"]:
+        send_telegram_message(chat_id, f"👋 Hey {full_name}, how can I assist you today?")
+
+    elif user_message in ["thanks", "thank you"]:
+        send_telegram_message(chat_id, f"🙏 You're welcome! {full_name}")
 
     else:
         send_telegram_message(chat_id, "⏳ Please wait...")
