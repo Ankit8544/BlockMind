@@ -287,6 +287,7 @@ def add_telegram_username():
         new_username = data.get("telegram_username")
 
         if not email or not new_username:
+            print("❌ Missing email or telegram_username in request.")
             return jsonify({
                 "success": False,
                 "message": "Both 'email' and 'telegram_username' are required."
@@ -296,6 +297,7 @@ def add_telegram_username():
         users = portfolio_collection.find({"user_mail": email})
 
         if users.count() == 0:
+            print(f"❌ No user portfolio found for email: {email}")
             return jsonify({
                 "success": False,
                 "message": f"No user portfolio found for email: {email}"
@@ -305,7 +307,6 @@ def add_telegram_username():
         for user in users:
             existing = user.get("telegram_username")
 
-            # Normalize to list
             if isinstance(existing, list):
                 if new_username not in existing:
                     existing.append(new_username)
@@ -313,20 +314,27 @@ def add_telegram_username():
                         {"_id": user["_id"]},
                         {"$set": {"telegram_username": existing}}
                     )
+                    print(f"✅ Added '{new_username}' to existing list for email: {email}")
                     updated = True
+                else:
+                    print(f"⚠️ Username '{new_username}' already exists in list for email: {email}. Skipping.")
             elif isinstance(existing, str):
                 if existing != new_username:
                     portfolio_collection.update_one(
                         {"_id": user["_id"]},
                         {"$set": {"telegram_username": [existing, new_username]}}
                     )
+                    print(f"✅ Converted string to list and added '{new_username}' for email: {email}")
                     updated = True
+                else:
+                    print(f"⚠️ Username '{new_username}' is same as existing string. Skipping for email: {email}")
             else:
-                # If no username field exists, just add it
+                # No username yet, set new one
                 portfolio_collection.update_one(
                     {"_id": user["_id"]},
                     {"$set": {"telegram_username": [new_username]}}
                 )
+                print(f"✅ No username found. Created list and added '{new_username}' for email: {email}")
                 updated = True
 
         if updated:
@@ -341,6 +349,7 @@ def add_telegram_username():
             }), 200
 
     except Exception as e:
+        print(f"🔥 Error: {str(e)}")
         return jsonify({
             "success": False,
             "message": str(e)
