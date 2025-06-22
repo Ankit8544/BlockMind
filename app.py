@@ -284,38 +284,61 @@ def add_telegram_username():
     try:
         data = request.json
         email = data.get("email")
-        telegram_username = data.get("telegram_username")
+        new_username = data.get("telegram_username")
 
-        if not email or not telegram_username:
+        if not email or not new_username:
             return jsonify({
                 "success": False,
                 "message": "Both 'email' and 'telegram_username' are required."
             }), 400
 
-        # ✅ SKIP: no sending message, no checking UserMetadata
-
-        # ✅ Directly update all UserPortfolio docs with this email:
         portfolio_collection = UserPortfolioCoin_Collection()
-        result = portfolio_collection.update_many(
-            {"user_mail": email},
-            {
-                "$set": {
-                    "telegram_username": telegram_username
-                }
-            },
-            upsert=False
-        )
+        users = portfolio_collection.find({"user_mail": email})
 
-        if result.matched_count == 0:
+        if users.count() == 0:
             return jsonify({
                 "success": False,
                 "message": f"No user portfolio found for email: {email}"
             }), 404
 
-        return jsonify({
-            "success": True,
-            "message": f"✅ Telegram username '{telegram_username}' saved for all portfolio entries for email '{email}'."
-        }), 200
+        updated = False
+        for user in users:
+            existing = user.get("telegram_username")
+
+            # Normalize to list
+            if isinstance(existing, list):
+                if new_username not in existing:
+                    existing.append(new_username)
+                    portfolio_collection.update_one(
+                        {"_id": user["_id"]},
+                        {"$set": {"telegram_username": existing}}
+                    )
+                    updated = True
+            elif isinstance(existing, str):
+                if existing != new_username:
+                    portfolio_collection.update_one(
+                        {"_id": user["_id"]},
+                        {"$set": {"telegram_username": [existing, new_username]}}
+                    )
+                    updated = True
+            else:
+                # If no username field exists, just add it
+                portfolio_collection.update_one(
+                    {"_id": user["_id"]},
+                    {"$set": {"telegram_username": [new_username]}}
+                )
+                updated = True
+
+        if updated:
+            return jsonify({
+                "success": True,
+                "message": f"✅ Telegram username '{new_username}' added for email '{email}'."
+            }), 200
+        else:
+            return jsonify({
+                "success": True,
+                "message": f"⚠️ Telegram username '{new_username}' already exists for email '{email}'. No update needed."
+            }), 200
 
     except Exception as e:
         return jsonify({
