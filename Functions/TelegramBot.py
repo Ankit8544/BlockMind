@@ -86,10 +86,17 @@ def Coin_Updates(username):
         if not user_data:
             return "⚠️ No user portfolio data found."
 
-        user_df = pd.DataFrame(user_data)
-        user_df = user_df[user_df['telegram_username'] == username]
+        # ✅ Step A: Find all fields like 'telegram_username_1', 'telegram_username_2', etc.
+        username_columns = [col for col in user_df.columns if col.startswith('telegram_username')]
+
+        # ✅ Step B: Filter rows where the username exists in any of those columns
+        mask = user_df[username_columns].apply(lambda row: username in row.values, axis=1)
+        user_df = user_df[mask]
+
+        # ✅ Step C: Handle case when no matching username is found
         if user_df.empty:
             return f"⚠️ No coin data found for username: {username}"
+
 
         coin_list = user_df['coin_name'].to_list()
 
