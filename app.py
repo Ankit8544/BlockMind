@@ -294,7 +294,7 @@ def add_telegram_username():
             }), 400
 
         portfolio_collection = UserPortfolioCoin_Collection()
-        users = list(portfolio_collection.find({"user_mail": email}))  # ✅ fix here
+        users = list(portfolio_collection.find({"user_mail": email}))
 
         if len(users) == 0:
             print(f"❌ No user portfolio found for email: {email}")
@@ -305,42 +305,31 @@ def add_telegram_username():
 
         updated = False
         for user in users:
-            existing = user.get("telegram_username")
+            # Collect existing telegram_username_* fields
+            username_fields = {k: v for k, v in user.items() if k.startswith("telegram_username")}
+            existing_usernames = list(username_fields.values())
 
-            if isinstance(existing, list):
-                if new_username not in existing:
-                    existing.append(new_username)
-                    portfolio_collection.update_one(
-                        {"_id": user["_id"]},
-                        {"$set": {"telegram_username": existing}}
-                    )
-                    print(f"✅ Added '{new_username}' to existing list for email: {email}")
-                    updated = True
-                else:
-                    print(f"⚠️ Username '{new_username}' already exists in list for email: {email}. Skipping.")
-            elif isinstance(existing, str):
-                if existing != new_username:
-                    portfolio_collection.update_one(
-                        {"_id": user["_id"]},
-                        {"$set": {"telegram_username": [existing, new_username]}}
-                    )
-                    print(f"✅ Converted string to list and added '{new_username}' for email: {email}")
-                    updated = True
-                else:
-                    print(f"⚠️ Username '{new_username}' is same as existing string. Skipping for email: {email}")
-            else:
-                # No username yet, set new one
-                portfolio_collection.update_one(
-                    {"_id": user["_id"]},
-                    {"$set": {"telegram_username": [new_username]}}
-                )
-                print(f"✅ No username found. Created list and added '{new_username}' for email: {email}")
-                updated = True
+            if new_username in existing_usernames:
+                print(f"⚠️ Username '{new_username}' already exists for email: {email}. Skipping.")
+                continue
+
+            # Find the next available field name
+            index = 1
+            while f"telegram_username_{index}" in user:
+                index += 1
+
+            new_field = f"telegram_username_{index}"
+            portfolio_collection.update_one(
+                {"_id": user["_id"]},
+                {"$set": {new_field: new_username}}
+            )
+            print(f"✅ Added '{new_username}' to field '{new_field}' for email: {email}")
+            updated = True
 
         if updated:
             return jsonify({
                 "success": True,
-                "message": f"✅ Telegram username '{new_username}' added for email '{email}'."
+                "message": f"✅ Telegram username '{new_username}' added in a new field for email '{email}'."
             }), 200
         else:
             return jsonify({

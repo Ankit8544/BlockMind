@@ -13,7 +13,6 @@ load_dotenv()
 
 # Load API credentials
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 def send_telegram_message(chat_id, message):
     """Sends a message to a specific Telegram user."""
