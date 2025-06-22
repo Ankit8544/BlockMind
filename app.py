@@ -294,9 +294,9 @@ def add_telegram_username():
             }), 400
 
         portfolio_collection = UserPortfolioCoin_Collection()
-        users = portfolio_collection.find({"user_mail": email})
+        users = list(portfolio_collection.find({"user_mail": email}))  # ✅ fix here
 
-        if users.count() == 0:
+        if len(users) == 0:
             print(f"❌ No user portfolio found for email: {email}")
             return jsonify({
                 "success": False,
