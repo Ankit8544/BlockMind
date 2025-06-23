@@ -194,7 +194,7 @@ def receive_crypto_coins_detail_from_power_app():
 
 # Flask route to receive crypto coins detail from Power App with payment
 @app.route('/receive-coins-from-power-app-with-paymewnt', methods=['POST'])
-def receive_crypto_coins_detail_from_power_app():
+def receive_crypto_coins_detail_from_power_app_with_payment():
     try:
         data = request.json
 
