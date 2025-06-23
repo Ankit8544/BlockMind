@@ -216,7 +216,7 @@ def receive_crypto_coins_detail_from_power_app_with_payment():
             if blank_fields:
                 errors.append(f"Blank fields: {', '.join(blank_fields)}")
             return jsonify({
-                "success": False,
+                "success": 'False',
                 "message": " | ".join(errors)
             }), 200  # Always returning 200
 
@@ -226,11 +226,11 @@ def receive_crypto_coins_detail_from_power_app_with_payment():
         validation_result = is_valid_crypto_symbol(coin_symbol, coin_name)
 
         if validation_result == "name_not_found":
-            return jsonify({"success": False, "message": "No coin available with this name"}), 200
+            return jsonify({"success": 'False', "message": "No coin available with this name"}), 200
         elif validation_result == "symbol_mismatch":
-            return jsonify({"success": False, "message": "Symbol not aligned with the name"}), 200
+            return jsonify({"success": 'False', "message": "Symbol not aligned with the name"}), 200
         elif validation_result != "valid":
-            return jsonify({"success": False, "message": "Coin validation failed due to API or network error"}), 200
+            return jsonify({"success": 'False', "message": "Coin validation failed due to API or network error"}), 200
 
         # Step 3: Validate purchase date format
         try:
@@ -243,19 +243,19 @@ def receive_crypto_coins_detail_from_power_app_with_payment():
             _ = parsed_date.strftime("%Y-%m-%d")
         except Exception:
             return jsonify({
-                "success": False,
+                "success": 'False',
                 "message": "Invalid date format. Use YYYY-MM-DD or MM/DD/YYYY."
             }), 200
 
         # ✅ All validations passed
         return jsonify({
-            "success": True,
-            "message": "Crypto investment data validated successfully. (No data saved)"
+            "success": 'True',
+            "message": "Crypto data validated successfully. Proceeding to payment details... "
         }), 200
 
     except Exception as e:
         return jsonify({
-            "success": False,
+            "success": 'False',
             "message": f"Unexpected error: {str(e)}"
         }), 200
 
