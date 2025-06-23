@@ -40,6 +40,8 @@ def get_access_token():
 
 # Get the access token
 access_token = get_access_token()
+print("✅ Access token obtained successfully.")
+print(f"Access Token: {access_token[:10]}...")  # Print only the first 10 characters for security
 
 # Check if the access token is valid
 if not access_token:

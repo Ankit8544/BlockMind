@@ -192,6 +192,73 @@ def receive_crypto_coins_detail_from_power_app():
     except Exception as e:
         return jsonify({"success": 'False', "message": str(e)}), 200
 
+# Flask route to receive crypto coins detail from Power App with payment
+@app.route('/receive-coins-from-power-app-with-paymewnt', methods=['POST'])
+def receive_crypto_coins_detail_from_power_app():
+    try:
+        data = request.json
+
+        # Step 1: Basic field presence check
+        required_fields = ["User Mail", "Name of Coin", "Coin Symbol", "Purchase Date"]
+        missing_fields = []
+        blank_fields = []
+
+        for field in required_fields:
+            if field not in data:
+                missing_fields.append(field)
+            elif str(data[field]).strip() == "":
+                blank_fields.append(field)
+
+        if missing_fields or blank_fields:
+            errors = []
+            if missing_fields:
+                errors.append(f"Missing fields: {', '.join(missing_fields)}")
+            if blank_fields:
+                errors.append(f"Blank fields: {', '.join(blank_fields)}")
+            return jsonify({
+                "success": False,
+                "message": " | ".join(errors)
+            }), 200  # Always returning 200
+
+        # Step 2: Validate coin name and symbol
+        coin_symbol = data['Coin Symbol']
+        coin_name = data['Name of Coin']
+        validation_result = is_valid_crypto_symbol(coin_symbol, coin_name)
+
+        if validation_result == "name_not_found":
+            return jsonify({"success": False, "message": "No coin available with this name"}), 200
+        elif validation_result == "symbol_mismatch":
+            return jsonify({"success": False, "message": "Symbol not aligned with the name"}), 200
+        elif validation_result != "valid":
+            return jsonify({"success": False, "message": "Coin validation failed due to API or network error"}), 200
+
+        # Step 3: Validate purchase date format
+        try:
+            purchase_date_str = data['Purchase Date']
+            try:
+                parsed_date = datetime.strptime(purchase_date_str, "%Y-%m-%d")
+            except ValueError:
+                parsed_date = datetime.strptime(purchase_date_str, "%m/%d/%Y")
+            # Converting to ISO just for validation
+            _ = parsed_date.strftime("%Y-%m-%d")
+        except Exception:
+            return jsonify({
+                "success": False,
+                "message": "Invalid date format. Use YYYY-MM-DD or MM/DD/YYYY."
+            }), 200
+
+        # ✅ All validations passed
+        return jsonify({
+            "success": True,
+            "message": "Crypto investment data validated successfully. (No data saved)"
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": f"Unexpected error: {str(e)}"
+        }), 200
+
 # Flask route to get data
 @app.route('/getdata', methods=['GET'])
 def getdata():
