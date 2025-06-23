@@ -15,3 +15,5 @@ ta
 tweepy
 praw
 textblob
+razorpay
+setuptools

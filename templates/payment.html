@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Processing Payment</title>
+        <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    </head>
+    <body>
+        <script>
+            const user = {{ user | tojson }};
+            const userId = "{{ user_id }}";
+            const orderId = "{{ order_id }}";
+            const razorpayKey = "{{ razorpay_key }}";
+
+            const options = {
+                key: razorpayKey,
+                amount: user.amount * 100,
+                currency: "INR",
+                name: "BlockMinds",
+                description: "Auto Payment",
+                order_id: orderId,
+                handler: function(response) {
+                    fetch(`/confirm-payment/${userId}`, {
+                        method: 'POST',
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            razorpay_payment_id: response.razorpay_payment_id
+                        })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        alert("✅ Payment Successful: " + data.message);
+                    });
+                },
+                prefill: {
+                    name: user.name,
+                    email: user.email,
+                    contact: user.mobile
+                },
+                theme: {
+                    color: "#0BC77A"
+                }
+            };
+
+            window.onload = function() {
+                const rzp = new Razorpay(options);
+                rzp.on('payment.failed', function(response) {
+                    alert("❌ Payment Failed: " + response.error.description);
+                });
+                rzp.open();
+            };
+            
+            window.onload = function() {
+                const rzp = new Razorpay(options);
+
+                rzp.on('payment.failed', function(response) {
+                    console.warn("❌ Razorpay Payment Failed:", response);
+                    alert("❌ Payment Failed: " + response.error.description);
+
+                    // Optional: redirect user back or log the event
+                    // window.location.href = "/payment-failed";
+                });
+
+                rzp.open();
+            };
+        </script>
+    </body>
+</html>
