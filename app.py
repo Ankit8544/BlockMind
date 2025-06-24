@@ -33,12 +33,9 @@ logging.basicConfig(filename=LOG_FILE, level=logging.INFO)
 app.config['PREFERRED_URL_SCHEME'] = 'https'
 app.config['SERVER_NAME'] = 'cryptodata-pnzi.onrender.com'  # Replace with your actual domain
 
-# key_id: rzp_test_EkL1WxlCiSYost
-# key_secret: jG3ElIiOaTkwXiaSD1KBHqmd
-
 # 🔐 Razorpay credentials
-RAZORPAY_KEY = "rzp_test_EkL1WxlCiSYost" #os.getenv('RAZORPAY_KEY')
-RAZORPAY_SECRET = "jG3ElIiOaTkwXiaSD1KBHqmd" #os.getenv('RAZORPAY_SECRET')
+RAZORPAY_KEY = os.getenv('RAZORPAY_KEY')
+RAZORPAY_SECRET = os.getenv('RAZORPAY_SECRET')
 
 if not RAZORPAY_KEY or not RAZORPAY_SECRET:
     raise ValueError("Razorpay credentials are missing. Set RAZORPAY_KEY and RAZORPAY_SECRET.")
