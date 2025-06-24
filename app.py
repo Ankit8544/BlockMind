@@ -15,6 +15,7 @@ from Functions.TelegramBot import handle_start, handle_message, set_webhook
 from Functions.BlockMindsStatusBot import send_status_message
 from Functions.Analysis import Analysis
 from Functions.UserMetaData import user_metadata
+from Functions.RazorPay import check_payment_status
 import razorpay
 import time
 
@@ -384,84 +385,46 @@ def start_payment():
     else:
         return "Invalid or expired session", 404
 
-# Flask route to wait for payment
-@app.route('/wait-for-payment', methods=['GET', 'POST'])
-def wait_for_payment():
+# Flask route to handle payment status check
+@app.route('/check-payment-status', methods=['GET', 'POST'])
+def check_payment_status_via_route():
     try:
-        # Support both GET and POST methods
-        user_id = None
+        order_id = None
 
+        # Extract order_id from GET or POST
         if request.method == 'GET':
-            user_id = request.args.get('user_id')
+            order_id = request.args.get('order_id')
         elif request.method == 'POST':
             data = request.get_json(force=True)
-            user_id = data.get('user_id')
+            order_id = data.get('order_id')
 
-        print("🔍 Waiting for payment for user:", user_id)
-
-        if not user_id or user_id not in pending_users:
+        # Validate order_id
+        if not order_id:
             return jsonify({
                 "success": False,
-                "message": "Invalid or expired user session."
+                "status": "error",
+                "message": "Missing or invalid 'order_id'.",
+                "order_id": None,
+                "payment_id": None
             }), 200
 
-        user = pending_users[user_id]
-        order_id = user['razorpay_order_id']
+        print(f"🔍 Initiating payment status check for order_id: {order_id}")
 
-        max_wait_seconds = 20*60  # 20 minutes
-        poll_interval = 5
-        waited = 0
+        # Check status using internal function
+        result = check_payment_status(order_id)
 
-        while waited < max_wait_seconds:
-            try:
-                payments = razorpay_client.order.payments(order_id)
-            except Exception as e:
-                return jsonify({
-                    "success": False,
-                    "message": f"Error fetching payment status: {str(e)}"
-                }), 200
+        print(f"✅ Payment check result: {result['status']} for order_id: {order_id}")
 
-            for payment in payments['items']:
-                payment_status = payment.get('status')
-                payment_id = payment.get('id')
-
-                if payment_status == 'captured':
-                    pending_users[user_id]['status'] = 'paid'
-                    pending_users[user_id]['razorpay_payment_id'] = payment_id
-                    return jsonify({
-                        "success": True,
-                        "status": "paid",
-                        "message": "Payment successful.",
-                        "payment_id": payment_id,
-                        "order_id": order_id
-                    }), 200
-
-                elif payment_status == 'failed':
-                    pending_users[user_id]['status'] = 'failed'
-                    pending_users[user_id]['razorpay_payment_id'] = payment_id
-                    return jsonify({
-                        "success": True,
-                        "status": "failed",
-                        "message": "Payment failed.",
-                        "payment_id": payment_id,
-                        "order_id": order_id
-                    }), 200
-
-            time.sleep(poll_interval)
-            waited += poll_interval
-
-        pending_users[user_id]['status'] = 'timeout'
-        return jsonify({
-            "success": True,
-            "status": "timeout",
-            "message": "No payment activity within the timeout window.",
-            "order_id": order_id
-        }), 200
+        return jsonify(result), 200
 
     except Exception as e:
+        print(f"❌ Error during payment status check: {str(e)}")
         return jsonify({
             "success": False,
-            "message": f"Internal error: {str(e)}"
+            "status": "error",
+            "message": f"Internal server error: {str(e)}",
+            "order_id": None,
+            "payment_id": None
         }), 200
 
 # Flask route to get data
