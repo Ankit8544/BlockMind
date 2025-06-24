@@ -283,38 +283,38 @@ def receive_crypto_coins_detail_from_power_app_with_payment():
 def start_payment():
     if request.method == 'POST':
         try:
-            #data = request.get_json(force=True)
+            data = request.get_json(force=True)
             
             # ✅ Step 1: Field presence validation
-            #required_fields = ['name', 'email', 'mobile', 'amount']
-            #missing_fields = []
-            #blank_fields = []
+            required_fields = ['name', 'email', 'mobile', 'amount']
+            missing_fields = []
+            blank_fields = []
 
-            #for field in required_fields:
-                #if field not in data:
-                    #missing_fields.append(field)
-                #elif str(data.get(field)).strip() == "":
-                    #blank_fields.append(field)
+            for field in required_fields:
+                if field not in data:
+                    missing_fields.append(field)
+                elif str(data.get(field)).strip() == "":
+                    blank_fields.append(field)
 
-            #if missing_fields or blank_fields:
-                #errors = []
-                #if missing_fields:
-                    #errors.append(f"Missing fields: {', '.join(missing_fields)}")
-                #if blank_fields:
-                    #errors.append(f"Blank fields: {', '.join(blank_fields)}")
+            if missing_fields or blank_fields:
+                errors = []
+                if missing_fields:
+                    errors.append(f"Missing fields: {', '.join(missing_fields)}")
+                if blank_fields:
+                    errors.append(f"Blank fields: {', '.join(blank_fields)}")
 
-                #return jsonify({
-                    #"success": False,
-                    #"message": " | ".join(errors)
-                #}), 200
+                return jsonify({
+                    "success": False,
+                    "message": " | ".join(errors)
+                }), 200
 
             # ✅ Step 2: Normalize inputs
-            name = "Ankit Kumar" #data.get('name')
-            email = "ankitkumar8757400@gmail.com" #data.get('email')
-            mobile = 9473424807 #data.get('mobile')
-            amount = 1.0 #float(data.get('amount'))
+            name = data.get('name')
+            email = data.get('email')
+            mobile = data.get('mobile')
+            amount = float(data.get('amount'))
             try:
-                amount = float(1.0) #data['amount'])
+                amount = float(data['amount'])
             except ValueError:
                 return jsonify({
                     "success": False,
@@ -408,7 +408,7 @@ def wait_for_payment():
         user = pending_users[user_id]
         order_id = user['razorpay_order_id']
 
-        max_wait_seconds = 90
+        max_wait_seconds = 20*60  # 20 minutes
         poll_interval = 5
         waited = 0
 

@@ -46,14 +46,6 @@
 
             window.onload = function() {
                 const rzp = new Razorpay(options);
-                rzp.on('payment.failed', function(response) {
-                    alert("❌ Payment Failed: " + response.error.description);
-                });
-                rzp.open();
-            };
-            
-            window.onload = function() {
-                const rzp = new Razorpay(options);
 
                 rzp.on('payment.failed', function(response) {
                     console.warn("❌ Razorpay Payment Failed:", response);
