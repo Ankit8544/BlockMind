@@ -324,9 +324,7 @@ def start_payment():
 
             user_id = f"{email}_{mobile}"
             
-            wait_url = url_for('wait_for_payment', user_id=user_id, _external=True)
             print("🔑 User ID generated:", user_id)
-            print("🔗 Wait URL generated:", wait_url)
 
             # ✅ Step 3: Create Razorpay order
             order_data = {
@@ -358,7 +356,6 @@ def start_payment():
                 "success": True,
                 "message": "Payment session created successfully.",
                 "payment_url": payment_url,
-                "wait_url": wait_url,
                 "razorpay_key": RAZORPAY_KEY,
                 "order_id": order['id'],
                 "user_id": user_id
