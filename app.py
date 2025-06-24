@@ -365,9 +365,11 @@ def start_payment():
             }), 200
 
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             return jsonify({
                 "success": False,
-                "message": f"Internal server error: {str(e)}"
+                "message": f"Error: {str(e)}"
             }), 200
 
     # GET: Render payment.html
