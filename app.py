@@ -390,13 +390,19 @@ def start_payment():
 def check_payment_status_via_route():
     try:
         order_id = None
+        timeout_minutes = 20
+        poll_interval = 5
 
-        # Extract order_id from GET or POST
         if request.method == 'GET':
             order_id = request.args.get('order_id')
+            timeout_minutes = int(request.args.get('timeout', 20))
+            poll_interval = int(request.args.get('interval', 5))
+
         elif request.method == 'POST':
             data = request.get_json(force=True)
             order_id = data.get('order_id')
+            timeout_minutes = int(data.get('timeout', 20))
+            poll_interval = int(data.get('interval', 5))
 
         # Validate order_id
         if not order_id:
@@ -408,10 +414,10 @@ def check_payment_status_via_route():
                 "payment_id": None
             }), 200
 
-        print(f"🔍 Initiating payment status check for order_id: {order_id}")
+        print(f"🔍 Checking payment status for order_id: {order_id}, timeout={timeout_minutes} min, interval={poll_interval}s")
 
-        # Check status using internal function
-        result = check_payment_status(order_id)
+        # Call the core function with all parameters
+        result = check_payment_status(order_id, timeout_minutes, poll_interval)
 
         print(f"✅ Payment check result: {result['status']} for order_id: {order_id}")
 
