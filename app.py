@@ -441,7 +441,7 @@ def check_payment_status_via_route():
             # Step 3: Handle and format purchase date: ensure it's in string ISO format (YYYY-MM-DD)
             try:
                 import datetime
-                purchase_date_str = data['Purchase Date']
+                purchase_date_str = data.get('purchase_date')
                 try:
                     parsed_date = datetime.datetime.strptime(purchase_date_str, "%Y-%m-%d")
                 except ValueError:
