@@ -435,18 +435,74 @@ def check_payment_status_via_route():
         result = check_payment_status(order_id, timeout_minutes, poll_interval)
 
         print(f"✅ Payment check result: {result['status']} for order_id: {order_id}")
+        
+        if result['status'] == 'paid':
 
-        return jsonify(result), 200
+            # Step 3: Handle and format purchase date: ensure it's in string ISO format (YYYY-MM-DD)
+            try:
+                import datetime
+                purchase_date_str = data['Purchase Date']
+                try:
+                    parsed_date = datetime.datetime.strptime(purchase_date_str, "%Y-%m-%d")
+                except ValueError:
+                    parsed_date = datetime.datetime.strptime(purchase_date_str, "%m/%d/%Y")
+                iso_date = parsed_date.strftime("%Y-%m-%d")
+            except Exception:
+                return jsonify({"success": 'False', "message": "Invalid date format. Use YYYY-MM-DD or MM/DD/YYYY."}), 200
+
+            from datetime import datetime
+        
+            # Step 4: Normalize data
+            cleaned_data = {
+                "user_mail": data['User Mail'].strip(),       # normalize email
+                "coin_name": data.get('coin_name').strip(),
+                "coin_symbol": data.get('coin_name').strip(),
+                "purchase_date": ''                             # ISO string format
+            }
+        
+            # Step 5: Insert User Metadata
+            try:
+                # Initialize collection
+                UserMetaDataCollection = UserMetadata_Collection()
+                
+                # Check for existing user by email
+                existing_user = UserMetaDataCollection.find_one({"mail_address": cleaned_data['user_mail']})
+
+                if existing_user:
+                    print(f"User with email {cleaned_data['user_mail']} already exists. Skipping insertion.")
+                else:
+                    print("Inserting User MetaData:")
+                    try:
+                        # Create a proper UserDetail dictionary 
+                        UserDetail = user_metadata(cleaned_data['user_mail'])
+                        UserMetaDataCollection.insert_one(UserDetail)
+                        print("User MetaData inserted successfully.")
+                    except Exception as e:
+                        print(f"⚠️ Skipping User Metadata insertion due to error: {e}")
+            except Exception as e:
+                print(f"⚠️ Failed to process User Metadata logic: {e}")
+            
+            # Step 6: Validate MongoDB Payload Format
+            is_valid, msg = validate_crypto_payload(cleaned_data)
+            if not is_valid:
+                return jsonify({"success": 'False', "message": msg}), 200
+
+            # Step 7: Insert into MongoDB
+            UserPortfolioCollection = UserPortfolioCoin_Collection()
+            result = UserPortfolioCollection.insert_one(cleaned_data)
+            print(f"✅ Data inserted with ID: {result.inserted_id}")
+            print(f"Inserted data: {cleaned_data}")
+
+            # Step 8: Return success response
+            print("🚀 Crypto investment data saved successfully.")
+            return jsonify({
+                "success": 'True',
+                "message": "Crypto investment data saved successfully.",
+                "id": str(result.inserted_id)
+            }), 200
 
     except Exception as e:
-        print(f"❌ Error during payment status check: {str(e)}")
-        return jsonify({
-            "success": False,
-            "status": "error",
-            "message": f"Internal server error: {str(e)}",
-            "order_id": None,
-            "payment_id": None
-        }), 200
+            return jsonify({"success": 'False', "message": str(e)}), 200
 
 # Flask route to get data
 @app.route('/getdata', methods=['GET'])
