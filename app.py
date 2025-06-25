@@ -417,6 +417,8 @@ def check_payment_status_via_route():
         poll_interval = 5
         order_id = data.get("order_id", "").strip()
 
+        print(f"🔍 Checking payment status for order_id: {order_id}")
+
         # Validate order_id
         if not order_id:
             return jsonify({
