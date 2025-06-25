@@ -13,6 +13,8 @@ if not RAZORPAY_KEY or not RAZORPAY_SECRET:
 razorpay_client = razorpay.Client(auth=(RAZORPAY_KEY, RAZORPAY_SECRET))
 
 def check_payment_status(order_id: str, timeout_minutes: int = 20, poll_interval: int = 5) -> dict:
+    import time
+
     max_wait_seconds = timeout_minutes * 60
     waited = 0
 
@@ -34,31 +36,42 @@ def check_payment_status(order_id: str, timeout_minutes: int = 20, poll_interval
                 payment_id = payment.get('id')
                 method = payment.get('method')
 
-                # 🔍 Common fields
+                # Raw values in paise
+                amount_paise = payment.get("amount", 0) or 0
+                fee_paise = payment.get("fee", 0) or 0
+                tax_paise = payment.get("tax", 0) or 0
+
+                # Convert to INR
+                amount_inr = round(amount_paise / 100, 2)
+                fee_inr = round(fee_paise / 100, 2)
+                tax_inr = round(tax_paise / 100, 2)
+
+                # Method-specific fields
                 method_details = {
                     "method": method,
                     "email": payment.get("email"),
                     "contact": payment.get("contact"),
-                    "amount": payment.get("amount"),
-                    "currency": payment.get("currency"),
-                    "fee": payment.get("fee"),
-                    "tax": payment.get("tax"),
-                    "status": status,
+                    "amount": amount_inr,
+                    "razorpay_fee": fee_inr,
+                    "gst": tax_inr,
+                    "total_fee": fee_inr,  # Razorpay fee includes GST
+                    "status": status
                 }
 
-                # 🔄 Method-specific fields
+                # Extract payment method specific data
                 if method == "upi":
                     method_details["vpa"] = payment.get("vpa")
                     method_details["upi_transaction_id"] = payment.get("acquirer_data", {}).get("upi_transaction_id")
 
                 elif method == "card":
                     method_details["card_id"] = payment.get("card_id")
+                    card = payment.get("card", {})
                     method_details["card_details"] = {
-                        "last4": payment.get("card", {}).get("last4"),
-                        "network": payment.get("card", {}).get("network"),
-                        "type": payment.get("card", {}).get("type"),
-                        "issuer": payment.get("card", {}).get("issuer"),
-                        "international": payment.get("card", {}).get("international"),
+                        "last4": card.get("last4"),
+                        "network": card.get("network"),
+                        "type": card.get("type"),
+                        "issuer": card.get("issuer"),
+                        "international": card.get("international"),
                     }
 
                 elif method == "netbanking":
@@ -81,9 +94,9 @@ def check_payment_status(order_id: str, timeout_minutes: int = 20, poll_interval
                     method_details["provider"] = payment.get("provider")
 
                 elif method == "cod":
-                    method_details["description"] = "Cash on delivery – collected manually"
+                    method_details["description"] = "Cash on Delivery – manually collected"
 
-                # ✅ Status responses
+                # Final status responses
                 if status == 'captured':
                     return {
                         "success": True,
@@ -104,6 +117,7 @@ def check_payment_status(order_id: str, timeout_minutes: int = 20, poll_interval
                         "payment_details": method_details
                     }
 
+            # Sleep before polling again
             time.sleep(poll_interval)
             waited += poll_interval
 
