@@ -32,14 +32,66 @@ def check_payment_status(order_id: str, timeout_minutes: int = 20, poll_interval
             for payment in payments.get('items', []):
                 status = payment.get('status')
                 payment_id = payment.get('id')
+                method = payment.get('method')
 
+                # 🔍 Common fields
+                method_details = {
+                    "method": method,
+                    "email": payment.get("email"),
+                    "contact": payment.get("contact"),
+                    "amount": payment.get("amount"),
+                    "currency": payment.get("currency"),
+                    "fee": payment.get("fee"),
+                    "tax": payment.get("tax"),
+                    "status": status,
+                }
+
+                # 🔄 Method-specific fields
+                if method == "upi":
+                    method_details["vpa"] = payment.get("vpa")
+                    method_details["upi_transaction_id"] = payment.get("acquirer_data", {}).get("upi_transaction_id")
+
+                elif method == "card":
+                    method_details["card_id"] = payment.get("card_id")
+                    method_details["card_details"] = {
+                        "last4": payment.get("card", {}).get("last4"),
+                        "network": payment.get("card", {}).get("network"),
+                        "type": payment.get("card", {}).get("type"),
+                        "issuer": payment.get("card", {}).get("issuer"),
+                        "international": payment.get("card", {}).get("international"),
+                    }
+
+                elif method == "netbanking":
+                    method_details["bank"] = payment.get("bank")
+
+                elif method == "wallet":
+                    method_details["wallet"] = payment.get("wallet")
+
+                elif method == "emi":
+                    method_details["emi_plan"] = payment.get("emi_plan")
+                    method_details["emi_duration"] = payment.get("emi_duration")
+
+                elif method == "bank_transfer":
+                    method_details["bank_reference"] = payment.get("acquirer_data", {}).get("bank_transaction_id")
+
+                elif method == "paylater":
+                    method_details["provider"] = payment.get("provider")
+
+                elif method == "cardless_emi":
+                    method_details["provider"] = payment.get("provider")
+
+                elif method == "cod":
+                    method_details["description"] = "Cash on delivery – collected manually"
+
+                # ✅ Status responses
                 if status == 'captured':
                     return {
                         "success": True,
                         "status": "paid",
                         "message": "Payment successful.",
                         "payment_id": payment_id,
-                        "order_id": order_id
+                        "order_id": order_id,
+                        "payment_details": method_details
                     }
 
                 elif status == 'failed':
@@ -48,13 +100,13 @@ def check_payment_status(order_id: str, timeout_minutes: int = 20, poll_interval
                         "status": "failed",
                         "message": "Payment failed.",
                         "payment_id": payment_id,
-                        "order_id": order_id
+                        "order_id": order_id,
+                        "payment_details": method_details
                     }
 
             time.sleep(poll_interval)
             waited += poll_interval
 
-        # If we reach here, it means no final status was found
         return {
             "success": True,
             "status": "timeout",
