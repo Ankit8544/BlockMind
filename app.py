@@ -454,7 +454,7 @@ def check_payment_status_via_route():
 
             # Step 4: Normalize data
             cleaned_data = {
-                "user_mail": data['User Mail'].strip(),       # normalize email
+                "user_mail": data['user_mail'].strip(),       # normalize email
                 "coin_name": data.get('coin_name').strip(),
                 "coin_symbol": data.get('coin_name').strip(),
                 "purchase_date": iso_date,
