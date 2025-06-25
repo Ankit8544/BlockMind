@@ -451,13 +451,14 @@ def check_payment_status_via_route():
                 return jsonify({"success": 'False', "message": "Invalid date format. Use YYYY-MM-DD or MM/DD/YYYY."}), 200
 
             from datetime import datetime
-        
+
             # Step 4: Normalize data
             cleaned_data = {
                 "user_mail": data['User Mail'].strip(),       # normalize email
                 "coin_name": data.get('coin_name').strip(),
                 "coin_symbol": data.get('coin_name').strip(),
-                "purchase_date": ''                             # ISO string format
+                "purchase_date": iso_date,
+                "payment_details": result
             }
         
             # Step 5: Insert User Metadata
