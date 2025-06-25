@@ -415,7 +415,7 @@ def check_payment_status_via_route():
         # Step 2: Extract parameters
         timeout_minutes = 20
         poll_interval = 5
-        order_id = "order_Ql3TxRfaYF4xus" # data.get("order_id", "").strip()
+        order_id = data.get("order_id", "").strip()
 
         # Validate order_id
         if not order_id:
