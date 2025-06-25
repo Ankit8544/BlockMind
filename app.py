@@ -408,7 +408,7 @@ def check_payment_status_via_route():
             if blank_fields:
                 errors.append(f"Blank fields: {', '.join(blank_fields)}")
             return jsonify({
-                "success": 'False',
+                "success": False,
                 "message": " | ".join(errors)
             }), 200
 
@@ -422,7 +422,7 @@ def check_payment_status_via_route():
         # Validate order_id
         if not order_id:
             return jsonify({
-                "success": 'False',
+                "success": False,
                 "status": "error",
                 "message": "Missing or invalid 'order_id'.",
                 "order_id": None,
@@ -441,7 +441,7 @@ def check_payment_status_via_route():
     except Exception as e:
         print(f"❌ Error during payment status check: {str(e)}")
         return jsonify({
-            "success": 'False',
+            "success": False,
             "status": "error",
             "message": f"Internal server error: {str(e)}",
             "order_id": None,
