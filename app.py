@@ -389,8 +389,6 @@ def start_payment():
 def check_payment_status_via_route():
     try:
         data = request.get_json(force=True)
-        send_status_message(Status_TELEGRAM_CHAT_ID, f"🔍 Checking payment status for data: {data}")
-        print(f"🔍 Checking payment status for data: {data}")
         
         # Step 1: Basic field presence check (original keys)
         required_fields = ["user_mail", "order_id", "name", "email", "mobile", "amount", "coin_name", "Coin_symbol", "purchase_date"]

@@ -140,7 +140,7 @@ def check_payment_status(order_id: str, timeout_minutes: int = 20, poll_interval
             waited += poll_interval
 
         return {
-            "success": True,
+            "success": 'True',
             "status": "timeout",
             "message": "No payment activity within the timeout window.",
             "payment_id": None,
@@ -149,7 +149,7 @@ def check_payment_status(order_id: str, timeout_minutes: int = 20, poll_interval
 
     except Exception as e:
         return {
-            "success": False,
+            "success": 'False',
             "status": "error",
             "message": f"Internal error: {str(e)}",
             "payment_id": None,
