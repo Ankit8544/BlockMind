@@ -429,12 +429,12 @@ def check_payment_status_via_route():
                 "payment_id": None
             }), 200
 
-        send_status_message(Status_TELEGRAM_CHAT_ID, f"🔍 Checking payment status for order_id: {order_id}, timeout={timeout_minutes} min, interval={poll_interval}s")
+        print(f"🔍 Checking payment status for order_id: {order_id}, timeout={timeout_minutes} min, interval={poll_interval}s")
 
         # Call the core function with all parameters
         result = check_payment_status(order_id, timeout_minutes, poll_interval)
 
-        send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ Payment check result: {result['status']} for order_id: {order_id}")
+        print(f"✅ Payment check result: {result['status']} for order_id: {order_id}")
 
         return jsonify(result), 200
 
