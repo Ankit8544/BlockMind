@@ -1,6 +1,8 @@
 import os
 import razorpay
 import time
+import requests
+from requests.auth import HTTPBasicAuth
 
 # 🔐 Razorpay credentials
 RAZORPAY_KEY = os.getenv('RAZORPAY_KEY')
@@ -12,6 +14,22 @@ if not RAZORPAY_KEY or not RAZORPAY_SECRET:
 # Initialize Razorpay client (ensure these are set properly in your app)
 razorpay_client = razorpay.Client(auth=(RAZORPAY_KEY, RAZORPAY_SECRET))
 
+# Function to get Razorpay balance
+def get_razorpay_balance():
+    url = "https://api.razorpay.com/v1/balance"
+
+    response = requests.get(url, auth=HTTPBasicAuth(RAZORPAY_KEY, RAZORPAY_SECRET))
+
+    if response.status_code == 200:
+        data = response.json()
+        balance_paise = data['balance']
+        currency = data['currency']
+        return data
+    else:
+        print("Failed to fetch balance:", response.status_code, response.text)
+        return None
+
+# Function to check payment status for a given order ID
 def check_payment_status(order_id: str, timeout_minutes: int = 20, poll_interval: int = 5) -> dict:
     import time
 

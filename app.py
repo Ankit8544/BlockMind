@@ -388,20 +388,34 @@ def start_payment():
 @app.route('/check-payment-status', methods=['GET', 'POST'])
 def check_payment_status_via_route():
     try:
-        order_id = None
+        data = request.get_json(force=True)
+
+        # Step 1: Basic field presence check (original keys)
+        required_fields = ["user_mail", "order_id", "name", "email", "mobile", "amount", "coin_name", "Coin_symbol", "purchase_date"]
+        missing_fields = []
+        blank_fields = []
+
+        for field in required_fields:
+            if field not in data:
+                missing_fields.append(field)
+            elif str(data[field]).strip() == "":
+                blank_fields.append(field)
+
+        if missing_fields or blank_fields:
+            errors = []
+            if missing_fields:
+                errors.append(f"Missing fields: {', '.join(missing_fields)}")
+            if blank_fields:
+                errors.append(f"Blank fields: {', '.join(blank_fields)}")
+            return jsonify({
+                "success": False,
+                "message": " | ".join(errors)
+            }), 200
+
+        # Step 2: Extract parameters
         timeout_minutes = 20
         poll_interval = 5
-
-        if request.method == 'GET':
-            order_id = request.args.get('order_id')
-            timeout_minutes = int(request.args.get('timeout', 20))
-            poll_interval = int(request.args.get('interval', 5))
-
-        elif request.method == 'POST':
-            data = request.get_json(force=True)
-            order_id = data.get('order_id')
-            timeout_minutes = int(data.get('timeout', 20))
-            poll_interval = int(data.get('interval', 5))
+        order_id = "order_Ql3TxRfaYF4xus" # data.get("order_id", "").strip()
 
         # Validate order_id
         if not order_id:
@@ -413,12 +427,12 @@ def check_payment_status_via_route():
                 "payment_id": None
             }), 200
 
-        print(f"🔍 Checking payment status for order_id: {order_id}, timeout={timeout_minutes} min, interval={poll_interval}s")
+        send_status_message(Status_TELEGRAM_CHAT_ID, f"🔍 Checking payment status for order_id: {order_id}, timeout={timeout_minutes} min, interval={poll_interval}s")
 
         # Call the core function with all parameters
         result = check_payment_status(order_id, timeout_minutes, poll_interval)
 
-        print(f"✅ Payment check result: {result['status']} for order_id: {order_id}")
+        send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ Payment check result: {result['status']} for order_id: {order_id}")
 
         return jsonify(result), 200
 
