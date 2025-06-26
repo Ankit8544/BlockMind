@@ -13,7 +13,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import random
 from cachetools import TTLCache
 from Functions.Fetch_Data import get_specific_coin_data
-from Functions.MongoDB import get_coin_ids
+from Functions.MongoDB import get_coin_ids, refresh_market_chart_data
 from Functions.BlockMindsStatusBot import send_status_message
 
 pd.options.mode.chained_assignment = None
@@ -213,6 +213,8 @@ def Analysis():
         url = f"https://api.coingecko.com/api/v3/coins/{Crypto_Id}/market_chart"
         params = {'vs_currency': 'usd', 'days': '365', 'interval': 'daily'}
 
+        print(f"🔄 Fetching data for {Crypto_Id}...")
+        
         data = None
         for attempt in range(10):  # Retry up to 10 times
             response = requests.get(url, params=params)
@@ -234,6 +236,13 @@ def Analysis():
             prices = pd.DataFrame(data['prices'], columns=['timestamp', 'price'])
             prices['timestamp'] = pd.to_datetime(prices['timestamp'], unit='ms')
             prices.set_index('timestamp', inplace=True)
+            
+            # Insert Market Chart Data into MongoDB
+            pricehistory = prices.copy()
+            pricehistory['price'] = pricehistory['price'].astype(float)
+            pricehistory['date'] = pricehistory.index.strftime('%Y-%m-%d')
+            pricehistory = pricehistory[['date', 'price']]
+            refresh_market_chart_data(pricehistory, Crypto_Id)
             
         except KeyError:
             send_status_message(Status_TELEGRAM_CHAT_ID, f"Skipping {Crypto_Id} due to missing keys in data.")

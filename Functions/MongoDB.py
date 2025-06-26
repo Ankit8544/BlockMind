@@ -91,6 +91,14 @@ def CryptoData_Collection():
         print("MongoDB client is None. Cannot access crypto data collection.")
         return None
 
+# Access Price History DB Collection and return the collection
+def PriceHistory_Collection():
+    if client:
+        PriceHistory_Collection = client["PriceHistory"]
+        return PriceHistory_Collection
+    else:
+        print("MongoDB client is None. Cannot access price history collection.")
+        return None
 
 # -------------------------- Getting Data from MongoDB -------------------------- # 
 
@@ -324,4 +332,31 @@ def validate_crypto_payload(cleaned_data):
         return False, " | ".join(errors)
 
     return True, "Valid"
+
+# Insert Price History Data into MongoDB
+def refresh_market_chart_data(df, crypto_id):
+    try:
+        if client:
+            db = client["MarketChartData"]
+
+            # Drop all existing collections
+            existing_collections = db.list_collection_names()
+            if existing_collections:
+                print(Status_TELEGRAM_CHAT_ID, f"🗑️ Found collections: {existing_collections}. Deleting them.")
+                for col in existing_collections:
+                    db.drop_collection(col)
+                print(Status_TELEGRAM_CHAT_ID, "✅ All collections dropped successfully.")
+
+            # Clean DataFrame
+            df = df.replace({np.nan: None})
+            records = df.to_dict(orient="records")
+
+            # Insert into new collection named after the crypto_id
+            collection = db[crypto_id.lower()]
+            print(Status_TELEGRAM_CHAT_ID, f"📤 Inserting data into '{crypto_id.lower()}' collection.")
+            collection.insert_many(records)
+            print(Status_TELEGRAM_CHAT_ID, f"✅ Data for '{crypto_id}' inserted successfully.")
+
+    except Exception as e:
+        send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error inserting market chart data for '{crypto_id}': {e}")
 
