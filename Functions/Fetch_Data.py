@@ -198,6 +198,7 @@ def fetch_and_store_hourly_and_ohlc():
 
     for crypto_id in coin_ids:
         print(f"\n🔁 [{datetime.now(ist).strftime('%H:%M:%S')}] Processing {crypto_id}")
+        send_status_message(Status_TELEGRAM_CHAT_ID, f"🔁 [{datetime.now(ist).strftime('%H:%M:%S')}] Processing {crypto_id}")
 
         # 🔹 Hourly Market Chart Data (interval=hourly)
         try:
