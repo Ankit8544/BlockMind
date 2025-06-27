@@ -688,8 +688,3 @@ with app.app_context():
         loader_thread.start()
         print("🧵 Data loader thread started.")
 
-if __name__ == "__main__":
-    import os
-    port = int(os.environ.get("PORT", 5000))
-    host = "127.0.0.1" if os.environ.get("FLASK_ENV") == "development" else "0.0.0.0"
-    app.run(host=host, port=port)
