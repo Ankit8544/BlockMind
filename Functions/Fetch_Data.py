@@ -8,7 +8,6 @@ import threading
 from Functions.BlockMindsStatusBot import send_status_message 
 from Functions.MongoDB import get_coin_ids, refresh_hourly_market_chart_data, refresh_ohlc_data
 
-
 # Load environment variables
 load_dotenv()
 
