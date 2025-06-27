@@ -211,10 +211,7 @@ def Analysis():
 
     for Crypto_Id in crypto_Ids:
         url = f"https://api.coingecko.com/api/v3/coins/{Crypto_Id}/market_chart"
-        params = {'vs_currency': 'usd', 'days': '365', 'interval': 'daily'}
-
-        print(f"🔄 Fetching data for {Crypto_Id}...")
-        
+        params = {'vs_currency': 'usd', 'days': '365', 'interval': 'daily'}        
         data = None
         for attempt in range(10):  # Retry up to 10 times
             response = requests.get(url, params=params)
