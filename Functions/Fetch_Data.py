@@ -211,6 +211,8 @@ def fetch_and_store_hourly_and_ohlc():
                 hourly_df["timestamp"] = pd.to_datetime(hourly_df["timestamp"], unit="ms").dt.tz_localize("UTC").dt.tz_convert("Asia/Kolkata")
                 hourly_df["timestamp"] = hourly_df["timestamp"].dt.strftime("%Y-%m-%d %H:%M:%S")
                 refresh_hourly_market_chart_data(hourly_df, crypto_id)
+                print(f"✅ '{crypto_id}' Market Chart Data refreshed successfully.")
+                send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ '{crypto_id}' Market Chart Data refreshed successfully.")
             else:
                 send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Market chart data failed for '{crypto_id}' after retries.")
 
@@ -229,6 +231,8 @@ def fetch_and_store_hourly_and_ohlc():
                 ohlc_df["timestamp"] = pd.to_datetime(ohlc_df["timestamp"], unit="ms").dt.tz_localize("UTC").dt.tz_convert("Asia/Kolkata")
                 ohlc_df["timestamp"] = ohlc_df["timestamp"].dt.strftime("%Y-%m-%d %H:%M:%S")
                 refresh_ohlc_data(ohlc_df, crypto_id)
+                print(f"✅ '{crypto_id}' Candlestickk Data refreshed successfully.")
+                send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ '{crypto_id}' Candlestick Data refreshed successfully.")
             else:
                 send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ OHLC data failed for '{crypto_id}' after retries.")
 
