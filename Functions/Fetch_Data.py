@@ -179,7 +179,6 @@ def fetch_with_backoff(url, params):
 
             if response.status_code == 429:
                 wait_time = BASE_DELAY * (2 ** attempt) + random.uniform(0, 1)
-                print(f"🚦 Rate limit hit. Waiting {wait_time:.2f}s before retrying...")
                 time.sleep(wait_time)
                 continue
 
@@ -188,36 +187,44 @@ def fetch_with_backoff(url, params):
 
         except requests.exceptions.RequestException as e:
             wait_time = BASE_DELAY * (2 ** attempt) + random.uniform(0.5, 2)
-            print(f"⚠️ Attempt {attempt}: Error - {e}. Retrying in {wait_time:.2f}s...")
             time.sleep(wait_time)
 
     return None
 
 def fetch_and_store_hourly_and_ohlc():
     coin_ids = get_coin_ids()
+    print(f"🔁 [{datetime.now(ist).strftime('%H:%M:%S')}] Starting hourly and OHLC data fetch for {len(coin_ids)} coins.")
 
     for crypto_id in coin_ids:
         print(f"\n🔁 [{datetime.now(ist).strftime('%H:%M:%S')}] Processing {crypto_id}")
-        send_status_message(Status_TELEGRAM_CHAT_ID, f"🔁 [{datetime.now(ist).strftime('%H:%M:%S')}] Processing {crypto_id}")
 
         # 🔹 Hourly Market Chart Data (interval=hourly)
         try:
             url_hourly = f"https://api.coingecko.com/api/v3/coins/{crypto_id}/market_chart"
-            params_hourly = {"vs_currency": "usd", "days": "1", "interval": "hourly"}
+            params_hourly = {
+                "vs_currency": "usd",
+                "days": "90",  # Fetching 90 days of data
+                }
 
             response = fetch_with_backoff(url_hourly, params_hourly)
             if response and response.status_code == 200:
                 data = response.json()
                 hourly_df = pd.DataFrame(data["prices"], columns=["timestamp", "price"])
                 hourly_df["timestamp"] = pd.to_datetime(hourly_df["timestamp"], unit="ms").dt.tz_localize("UTC").dt.tz_convert("Asia/Kolkata")
+
+                latest_time = hourly_df["timestamp"].max()
+                cutoff_time = latest_time - pd.Timedelta(hours=24)
+                hourly_df = hourly_df[hourly_df["timestamp"] > cutoff_time]
                 hourly_df["timestamp"] = hourly_df["timestamp"].dt.strftime("%Y-%m-%d %H:%M:%S")
+
                 refresh_hourly_market_chart_data(hourly_df, crypto_id)
                 print(f"✅ '{crypto_id}' Market Chart Data refreshed successfully.")
-                send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ '{crypto_id}' Market Chart Data refreshed successfully.")
             else:
-                send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Market chart data failed for '{crypto_id}' after retries.")
+                print(Status_TELEGRAM_CHAT_ID, f"❌ Market chart data failed for '{crypto_id}' after retries.")
+                #send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Market chart data failed for '{crypto_id}' after retries.")
 
         except Exception as e:
+            #print(Status_TELEGRAM_CHAT_ID, f"⚠️ Error fetching market chart for {crypto_id}: {e}")
             send_status_message(Status_TELEGRAM_CHAT_ID, f"⚠️ Error fetching market chart for {crypto_id}: {e}")
 
         # 🔹 OHLC Data (interval=5 min)
@@ -233,7 +240,6 @@ def fetch_and_store_hourly_and_ohlc():
                 ohlc_df["timestamp"] = ohlc_df["timestamp"].dt.strftime("%Y-%m-%d %H:%M:%S")
                 refresh_ohlc_data(ohlc_df, crypto_id)
                 print(f"✅ '{crypto_id}' Candlestickk Data refreshed successfully.")
-                send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ '{crypto_id}' Candlestick Data refreshed successfully.")
             else:
                 send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ OHLC data failed for '{crypto_id}' after retries.")
 

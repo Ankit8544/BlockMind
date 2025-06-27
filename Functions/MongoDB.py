@@ -347,7 +347,7 @@ def refresh_hourly_market_chart_data(df, crypto_id):
 
             db[collection_name].insert_many(records)
             print(f"✅ Hourly market chart for '{crypto_id}' inserted successfully.")
-            send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ Market Chart Data for '{crypto_id}' inserted successfully.")
+            #send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ Market Chart Data for '{crypto_id}' inserted successfully.")
     except Exception as e:
         send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error inserting hourly market chart data for '{crypto_id}': {e}")
     return True
@@ -366,7 +366,7 @@ def refresh_ohlc_data(df, crypto_id):
             
             db[collection_name].insert_many(records)
             print(f"✅ Candlestick Data for '{crypto_id}' inserted successfully.")
-            send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ Candlestick Data for '{crypto_id}' inserted successfully.")
+            #send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ Candlestick Data for '{crypto_id}' inserted successfully.")
     except Exception as e:
         send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error inserting OHLC data for '{crypto_id}': {e}")
 
