@@ -340,15 +340,14 @@ def refresh_hourly_market_chart_data(df, crypto_id):
             collection_name = crypto_id.lower()
 
             if collection_name in db.list_collection_names():
-                print(Status_TELEGRAM_CHAT_ID, f"🗑️ Found existing '{collection_name}' collection. Deleting it.")
                 db.drop_collection(collection_name)
 
             df = df.replace({np.nan: None})
             records = df.to_dict(orient="records")
 
-            print(Status_TELEGRAM_CHAT_ID, f"📤 Inserting hourly market chart into '{collection_name}' collection.")
             db[collection_name].insert_many(records)
-            print(Status_TELEGRAM_CHAT_ID, f"✅ Hourly market chart for '{crypto_id}' inserted successfully.")
+            print(f"✅ Hourly market chart for '{crypto_id}' inserted successfully.")
+            send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ Market Chart Data for '{crypto_id}' inserted successfully.")
     except Exception as e:
         send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error inserting hourly market chart data for '{crypto_id}': {e}")
     return True
@@ -360,15 +359,14 @@ def refresh_ohlc_data(df, crypto_id):
             collection_name = crypto_id.lower()
 
             if collection_name in db.list_collection_names():
-                print(Status_TELEGRAM_CHAT_ID, f"🗑️ Found existing '{collection_name}' collection. Deleting it.")
                 db.drop_collection(collection_name)
 
             df = df.replace({np.nan: None})
             records = df.to_dict(orient="records")
-
-            print(Status_TELEGRAM_CHAT_ID, f"📤 Inserting 5-min OHLC into '{collection_name}' collection.")
+            
             db[collection_name].insert_many(records)
-            print(Status_TELEGRAM_CHAT_ID, f"✅ 5-min OHLC for '{crypto_id}' inserted successfully.")
+            print(f"✅ Candlestick Data for '{crypto_id}' inserted successfully.")
+            send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ Candlestick Data for '{crypto_id}' inserted successfully.")
     except Exception as e:
         send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error inserting OHLC data for '{crypto_id}': {e}")
 

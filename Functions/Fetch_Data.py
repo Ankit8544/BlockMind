@@ -7,7 +7,12 @@ import concurrent.futures
 import threading
 from Functions.BlockMindsStatusBot import send_status_message 
 from Functions.MongoDB import get_coin_ids, refresh_hourly_market_chart_data, refresh_ohlc_data
+import random
+from datetime import datetime
+import pytz
 
+# Timezone
+ist = pytz.timezone("Asia/Kolkata")
 
 # Load environment variables
 load_dotenv()
@@ -27,6 +32,10 @@ WAIT_BETWEEN_CHUNKS = 50  # based on observed reset time
 THREADS_PER_CHUNK = 2
 MAX_RETRIES = 5
 
+# Constants
+MAX_RETRIES = 5
+BASE_DELAY = 3  # base delay for backoff in seconds
+HEADERS = {"Accept": "application/json"}
 
 def fetch_coin_data(coin_id):
     global next_available_time
@@ -147,7 +156,7 @@ def fetch_and_store_hourly_and_ohlc():
                 hourly_df["timestamp"] = hourly_df["timestamp"].dt.strftime("%Y-%m-%d %H:%M:%S")
                 refresh_hourly_market_chart_data(hourly_df, crypto_id)
         except Exception as e:
-            send_status_message(Status_TELEGRAM_CHAT_ID, f"⚠️ Error fetching hourly market chart for {crypto_id}: {e}")
+            send_status_message(Status_TELEGRAM_CHAT_ID, f"⚠️ Error fetching market chart data for {crypto_id}: {e}")
 
         # OHLC Data (1 Day, 5-min interval)
         try:
@@ -161,4 +170,71 @@ def fetch_and_store_hourly_and_ohlc():
                 ohlc_df["timestamp"] = ohlc_df["timestamp"].dt.strftime("%Y-%m-%d %H:%M:%S")
                 refresh_ohlc_data(ohlc_df, crypto_id)
         except Exception as e:
-            send_status_message(Status_TELEGRAM_CHAT_ID, f"⚠️ Error fetching OHLC 5-min data for {crypto_id}: {e}")
+            send_status_message(Status_TELEGRAM_CHAT_ID, f"⚠️ Error fetching candelstick data for {crypto_id}: {e}")
+
+def fetch_with_backoff(url, params):
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            response = requests.get(url, params=params, headers=HEADERS)
+
+            if response.status_code == 429:
+                wait_time = BASE_DELAY * (2 ** attempt) + random.uniform(0, 1)
+                print(f"🚦 Rate limit hit. Waiting {wait_time:.2f}s before retrying...")
+                time.sleep(wait_time)
+                continue
+
+            response.raise_for_status()
+            return response
+
+        except requests.exceptions.RequestException as e:
+            wait_time = BASE_DELAY * (2 ** attempt) + random.uniform(0.5, 2)
+            print(f"⚠️ Attempt {attempt}: Error - {e}. Retrying in {wait_time:.2f}s...")
+            time.sleep(wait_time)
+
+    return None
+
+def fetch_and_store_hourly_and_ohlc():
+    coin_ids = get_coin_ids()
+
+    for crypto_id in coin_ids:
+        print(f"\n🔁 [{datetime.now(ist).strftime('%H:%M:%S')}] Processing {crypto_id}")
+
+        # 🔹 Hourly Market Chart Data (interval=hourly)
+        try:
+            url_hourly = f"https://api.coingecko.com/api/v3/coins/{crypto_id}/market_chart"
+            params_hourly = {"vs_currency": "usd", "days": "1", "interval": "hourly"}
+
+            response = fetch_with_backoff(url_hourly, params_hourly)
+            if response and response.status_code == 200:
+                data = response.json()
+                hourly_df = pd.DataFrame(data["prices"], columns=["timestamp", "price"])
+                hourly_df["timestamp"] = pd.to_datetime(hourly_df["timestamp"], unit="ms").dt.tz_localize("UTC").dt.tz_convert("Asia/Kolkata")
+                hourly_df["timestamp"] = hourly_df["timestamp"].dt.strftime("%Y-%m-%d %H:%M:%S")
+                refresh_hourly_market_chart_data(hourly_df, crypto_id)
+            else:
+                send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Market chart data failed for '{crypto_id}' after retries.")
+
+        except Exception as e:
+            send_status_message(Status_TELEGRAM_CHAT_ID, f"⚠️ Error fetching market chart for {crypto_id}: {e}")
+
+        # 🔹 OHLC Data (interval=5 min)
+        try:
+            url_ohlc = f"https://api.coingecko.com/api/v3/coins/{crypto_id}/ohlc"
+            params_ohlc = {"vs_currency": "usd", "days": "1"}
+
+            response = fetch_with_backoff(url_ohlc, params_ohlc)
+            if response and response.status_code == 200:
+                data = response.json()
+                ohlc_df = pd.DataFrame(data, columns=["timestamp", "open", "high", "low", "close"])
+                ohlc_df["timestamp"] = pd.to_datetime(ohlc_df["timestamp"], unit="ms").dt.tz_localize("UTC").dt.tz_convert("Asia/Kolkata")
+                ohlc_df["timestamp"] = ohlc_df["timestamp"].dt.strftime("%Y-%m-%d %H:%M:%S")
+                refresh_ohlc_data(ohlc_df, crypto_id)
+            else:
+                send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ OHLC data failed for '{crypto_id}' after retries.")
+
+        except Exception as e:
+            send_status_message(Status_TELEGRAM_CHAT_ID, f"⚠️ Error fetching candlestick data for {crypto_id}: {e}")
+
+        # ⏳ Small pause between coins to avoid bursts
+        time.sleep(random.uniform(1.5, 3.0))
+
