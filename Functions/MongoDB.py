@@ -333,30 +333,42 @@ def validate_crypto_payload(cleaned_data):
 
     return True, "Valid"
 
-# Insert Price History Data into MongoDB
-def refresh_market_chart_data(df, crypto_id):
+def refresh_hourly_market_chart_data(df, crypto_id):
     try:
         if client:
             db = client["MarketChartData"]
+            collection_name = crypto_id.lower()
 
-            # Drop all existing collections
-            existing_collections = db.list_collection_names()
-            if existing_collections:
-                print(Status_TELEGRAM_CHAT_ID, f"🗑️ Found collections: {existing_collections}. Deleting them.")
-                for col in existing_collections:
-                    db.drop_collection(col)
-                print(Status_TELEGRAM_CHAT_ID, "✅ All collections dropped successfully.")
+            if collection_name in db.list_collection_names():
+                print(Status_TELEGRAM_CHAT_ID, f"🗑️ Found existing '{collection_name}' collection. Deleting it.")
+                db.drop_collection(collection_name)
 
-            # Clean DataFrame
             df = df.replace({np.nan: None})
             records = df.to_dict(orient="records")
 
-            # Insert into new collection named after the crypto_id
-            collection = db[crypto_id.lower()]
-            print(Status_TELEGRAM_CHAT_ID, f"📤 Inserting data into '{crypto_id.lower()}' collection.")
-            collection.insert_many(records)
-            print(Status_TELEGRAM_CHAT_ID, f"✅ Data for '{crypto_id}' inserted successfully.")
-
+            print(Status_TELEGRAM_CHAT_ID, f"📤 Inserting hourly market chart into '{collection_name}' collection.")
+            db[collection_name].insert_many(records)
+            print(Status_TELEGRAM_CHAT_ID, f"✅ Hourly market chart for '{crypto_id}' inserted successfully.")
     except Exception as e:
-        send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error inserting market chart data for '{crypto_id}': {e}")
+        send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error inserting hourly market chart data for '{crypto_id}': {e}")
+    return True
+
+def refresh_ohlc_data(df, crypto_id):
+    try:
+        if client:
+            db = client["CandlestickData"]
+            collection_name = crypto_id.lower()
+
+            if collection_name in db.list_collection_names():
+                print(Status_TELEGRAM_CHAT_ID, f"🗑️ Found existing '{collection_name}' collection. Deleting it.")
+                db.drop_collection(collection_name)
+
+            df = df.replace({np.nan: None})
+            records = df.to_dict(orient="records")
+
+            print(Status_TELEGRAM_CHAT_ID, f"📤 Inserting 5-min OHLC into '{collection_name}' collection.")
+            db[collection_name].insert_many(records)
+            print(Status_TELEGRAM_CHAT_ID, f"✅ 5-min OHLC for '{crypto_id}' inserted successfully.")
+    except Exception as e:
+        send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error inserting OHLC data for '{crypto_id}': {e}")
 

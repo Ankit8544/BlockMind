@@ -10,6 +10,7 @@ import re
 import time
 import threading
 from user_agents import parse as parse_ua
+from Functions.Fetch_Data import fetch_and_store_hourly_and_ohlc
 from Functions.MongoDB import UserPortfolio_Data, UserMetadata_Data, refersh_cryptodata, CryptoCoins_Data, is_valid_crypto_symbol, validate_crypto_payload, CryptoCoinList_Data, validate_crypto_payload, UserMetadata_Collection, UserPortfolioCoin_Collection
 from Functions.TelegramBot import handle_start, handle_message, set_webhook
 from Functions.BlockMindsStatusBot import send_status_message
@@ -69,10 +70,19 @@ def run_periodic_loader():
     
     while True:
         try:
+            # Step 1: Refresh Analysis data
             print(f"🔄 Starting periodic data load at {datetime.now(ist).strftime('%H:%M:%S')}.")
             load_data()  # This will refresh MongoDB data via refresh_cryptodata inside load_data()
             print(f"✅ MongoDB 'CryptoAnalysis' collection uploaded successfully at {datetime.now(ist).strftime('%H:%M:%S')}.")
-        
+            
+            # Step 2: Sleep for 1 minutes
+            time.sleep(60)  # Wait for 1 minute before next run
+            
+            # Step 3: Refresh 24hour MarketChart data and Candlestick data
+            print(f"🔄 Starting to refresh 24-hour MarketChart and Candlestick data at{datetime.now(ist).strftime('%H:%M:%S')}.")
+            fetch_and_store_hourly_and_ohlc()
+            print(f"✅ 24-hour MarketChart and Candlestick data refreshed successfully at {datetime.now(ist).strftime('%H:%M:%S')}.")
+
         except Exception as e:
             send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error in periodic data load: {e}")
         

@@ -237,13 +237,6 @@ def Analysis():
             prices['timestamp'] = pd.to_datetime(prices['timestamp'], unit='ms')
             prices.set_index('timestamp', inplace=True)
             
-            # Insert Market Chart Data into MongoDB
-            pricehistory = prices.copy()
-            pricehistory['price'] = pricehistory['price'].astype(float)
-            pricehistory['date'] = pricehistory.index.strftime('%Y-%m-%d')
-            pricehistory = pricehistory[['date', 'price']]
-            refresh_market_chart_data(pricehistory, Crypto_Id)
-            
         except KeyError:
             send_status_message(Status_TELEGRAM_CHAT_ID, f"Skipping {Crypto_Id} due to missing keys in data.")
             continue
