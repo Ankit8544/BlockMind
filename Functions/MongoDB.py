@@ -195,6 +195,82 @@ def CryptoCoins_Data():
         send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error retrieving user portfolio collection: {e}")
         return {}
 
+# Get Market Data in JSON format
+def MarketChartData_Data():
+    try:
+        if client:
+            MarketChartDatadb = client['MarketChartData']
+            
+            # Store the final dictionary
+            MarketChartData = {}
+
+            # Iterate through all collections in MarketChartData
+            for collection_name in MarketChartDatadb.list_collection_names():
+                collection = MarketChartDatadb[collection_name]
+                
+                # Load documents from the collection into DataFrame
+                data = list(collection.find())
+                if not data:
+                    continue  # Skip empty collections
+                
+                df = pd.DataFrame(data)
+
+                # Remove MongoDB default _id column
+                if "_id" in df.columns:
+                    df.drop(columns=["_id"], inplace=True)
+                
+                # Capitalize the first letter of each column name
+                df.columns = [col[0].upper() + col[1:] if col else col for col in df.columns]
+
+                # Convert DataFrame to list of dicts and store
+                MarketChartData[collection_name] = df.to_dict(orient="records")
+                
+            return MarketChartData
+        else:
+            send_status_message(Status_TELEGRAM_CHAT_ID, "MongoDB client is None. Cannot access market chart data.")
+            return {}
+    except Exception as e:
+        send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error retrieving market chart data: {e}")
+        return {}
+
+# Get Cabdlestick Data in JSON format
+def CandlestickData_Data():
+    try:
+        if client:
+            CandlestickDatadb = client['CandlestickData']
+            
+            # Store the final dictionary
+            CandlestickData = {}
+
+            # Iterate through all collections in CandlestickData
+            for collection_name in CandlestickDatadb.list_collection_names():
+                collection = CandlestickDatadb[collection_name]
+                
+                # Load documents from the collection into DataFrame
+                data = list(collection.find())
+                if not data:
+                    continue  # Skip empty collections
+                
+                df = pd.DataFrame(data)
+
+                # Remove MongoDB default _id column
+                if "_id" in df.columns:
+                    df.drop(columns=["_id"], inplace=True)
+                
+                # Capitalize the first letter of each column name
+                df.columns = [col[0].upper() + col[1:] if col else col for col in df.columns]
+
+                # Convert DataFrame to list of dicts and store
+                CandlestickData[collection_name] = df.to_dict(orient="records")
+                
+            return CandlestickData
+        else:
+            send_status_message(Status_TELEGRAM_CHAT_ID, "MongoDB client is None. Cannot access candlestick data.")
+            return {}
+    except Exception as e:
+        send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error retrieving candlestick data: {e}")
+        return {}
+
 
 # -------------------------- Processing Data Before inserting to MongoDB -------------------------- #
 

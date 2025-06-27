@@ -11,7 +11,7 @@ import time
 import threading
 from user_agents import parse as parse_ua
 from Functions.Fetch_Data import fetch_and_store_hourly_and_ohlc
-from Functions.MongoDB import UserPortfolio_Data, UserMetadata_Data, refersh_cryptodata, CryptoCoins_Data, is_valid_crypto_symbol, validate_crypto_payload, CryptoCoinList_Data, validate_crypto_payload, UserMetadata_Collection, UserPortfolioCoin_Collection
+from Functions.MongoDB import UserPortfolio_Data, UserMetadata_Data, refersh_cryptodata, CryptoCoins_Data, is_valid_crypto_symbol, validate_crypto_payload, CryptoCoinList_Data, validate_crypto_payload, UserMetadata_Collection, UserPortfolioCoin_Collection, MarketChartData_Data, CandlestickData_Data
 from Functions.TelegramBot import handle_start, handle_message, set_webhook
 from Functions.BlockMindsStatusBot import send_status_message
 from Functions.Analysis import Analysis
@@ -55,7 +55,7 @@ ist = pytz.timezone('Asia/Kolkata')
 def load_data():
     try:
         df = Analysis()
-        print(f"✅ Based on User Portfolio {df.shape[0]} CryptoCoins Data is loaded successfully in the Flask App. {datetime.now(ist).strftime('%H:%M:%S')}")
+        send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ Based on User Portfolio {df.shape[0]} CryptoCoins Data is loaded successfully in the Flask App. {datetime.now(ist).strftime('%H:%M:%S')}")
         if df is None or df.empty:
             raise ValueError("Analysis() returned an empty DataFrame.")
         
@@ -71,23 +71,20 @@ def run_periodic_loader():
     while True:
         try:
             # Step 1: Refresh Analysis data
-            print(f"🔄 Starting periodic data load at {datetime.now(ist).strftime('%H:%M:%S')}.")
             load_data()  # This will refresh MongoDB data via refresh_cryptodata inside load_data()
-            print(f"✅ MongoDB 'CryptoAnalysis' collection uploaded successfully at {datetime.now(ist).strftime('%H:%M:%S')}.")
+            send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ MongoDB 'CryptoAnalysis' collection uploaded successfully at {datetime.now(ist).strftime('%H:%M:%S')}.")
             
             # Step 2: Sleep for 1 minutes
             time.sleep(60)  # Wait for 1 minute before next run
             
             # Step 3: Refresh 24hour MarketChart data and Candlestick data
-            print(f"🔄 Starting to refresh 24-hour MarketChart and Candlestick data at{datetime.now(ist).strftime('%H:%M:%S')}.")
             fetch_and_store_hourly_and_ohlc()
-            print(f"✅ 24-hour MarketChart and Candlestick data refreshed successfully at {datetime.now(ist).strftime('%H:%M:%S')}.")
+            send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ 24-hour MarketChart and Candlestick data refreshed successfully at {datetime.now(ist).strftime('%H:%M:%S')}.")
 
         except Exception as e:
             send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error in periodic data load: {e}")
         
         finally:
-            print(Status_TELEGRAM_CHAT_ID, "⏳ Waiting for 30 minutes to update the data")
             time.sleep(1800)  # Wait after completion of each run
 
 # Load initial data
@@ -515,18 +512,36 @@ def check_payment_status_via_route():
     except Exception as e:
             return jsonify({"success": 'False', "message": str(e)}), 200
 
-# Flask route to get data
-@app.route('/getdata', methods=['GET'])
-def getdata():
+# Flask route to get analyzed data
+@app.route('/get-analyzed-data', methods=['GET'])
+def get_analyzed_data():
 
-    # Return both dataframes as a JSON response
     response = {
         "User Meta Data": UserMetadata_Data(),
         "User Portfolio": UserPortfolio_Data(),
         "User Portfolio Based Crypto Data": CryptoCoins_Data()
     }
+
+    return jsonify(response)
+
+# Flask route to get market chart data
+@app.route('/get-market-chart-data', methods=['GET'])
+def get_market_chart_data():
     
-    # Convert to JSON and return
+    response = {
+        "Market Chart Data": MarketChartData_Data()
+    }
+    
+    return jsonify(response)
+
+# Flask route to get candlestick data
+@app.route('/get-candlestick-data', methods=['GET'])
+def get_candlestick_data():
+    
+    response = {
+        "Candlestick Data": CandlestickData_Data()
+    }
+    
     return jsonify(response)
 
 # Flask route to get logs
