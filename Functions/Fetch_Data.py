@@ -8,6 +8,7 @@ import threading
 from Functions.BlockMindsStatusBot import send_status_message 
 from Functions.MongoDB import get_coin_ids, refresh_hourly_market_chart_data, refresh_ohlc_data
 
+
 # Load environment variables
 load_dotenv()
 
@@ -105,9 +106,16 @@ def get_specific_coin_data(coin_ids):
     chunks = chunkify(coin_ids, CHUNK_SIZE)
 
     for i, chunk in enumerate(chunks, 1):
-
-        with concurrent.futures.ThreadPoolExecutor(max_workers=THREADS_PER_CHUNK) as executor:
-            results = list(executor.map(fetch_coin_data, chunk))
+        try:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=THREADS_PER_CHUNK) as executor:
+                results = list(executor.map(fetch_coin_data, chunk))
+        except RuntimeError as e:
+            if "cannot schedule new futures" in str(e).lower():
+                print("⚠️ Thread creation blocked — falling back to sequential fetching.")
+                send_status_message(Status_TELEGRAM_CHAT_ID, f"⚠️ Fallback: ThreadPool blocked. Using sequential fetch.")
+                results = [fetch_coin_data(coin_id) for coin_id in chunk]  # 🔁 SEQUENTIAL fallback
+            else:
+                raise
 
         for coin_id, result in zip(chunk, results):
             if result:
@@ -120,11 +128,9 @@ def get_specific_coin_data(coin_ids):
 
     df = pd.DataFrame(all_data)
     df["Return on Investment"] = ((df["Current Price"] - df["All-Time Low Price"]) / df["All-Time Low Price"]) * 100
-
     return df
 
 def fetch_and_store_hourly_and_ohlc():
-
     coin_ids = get_coin_ids()
     for crypto_id in coin_ids:
         print(f"🔁 Processing {crypto_id}")
@@ -156,4 +162,3 @@ def fetch_and_store_hourly_and_ohlc():
                 refresh_ohlc_data(ohlc_df, crypto_id)
         except Exception as e:
             send_status_message(Status_TELEGRAM_CHAT_ID, f"⚠️ Error fetching OHLC 5-min data for {crypto_id}: {e}")
-
