@@ -55,7 +55,7 @@ ist = pytz.timezone('Asia/Kolkata')
 def load_data():
     try:
         df = Analysis()
-        print(f"✅ Based on User Portfolio {df.shape[0]} CryptoCoins Data is loaded successfully in the Flask App. {datetime.now(ist).strftime('%H:%M:%S')}")
+        send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ Based on User Portfolio {df.shape[0]} CryptoCoins Data is loaded successfully in the Flask App. {datetime.now(ist).strftime('%H:%M:%S')}")
         if df is None or df.empty:
             raise ValueError("Analysis() returned an empty DataFrame.")
         
@@ -72,14 +72,14 @@ def run_periodic_loader():
         try:
             # Step 1: Refresh Analysis data
             load_data()  # This will refresh MongoDB data via refresh_cryptodata inside load_data()
-            print(f"✅ MongoDB 'CryptoAnalysis' collection uploaded successfully at {datetime.now(ist).strftime('%H:%M:%S')}.")
+            send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ MongoDB 'CryptoAnalysis' collection uploaded successfully at {datetime.now(ist).strftime('%H:%M:%S')}.")
             
             # Step 2: Sleep for 1 minutes
             time.sleep(60)  # Wait for 1 minute before next run
             
             # Step 3: Refresh 24hour MarketChart data and Candlestick data
             fetch_and_store_hourly_and_ohlc()
-            print(f"✅ 24-hour MarketChart and Candlestick data refreshed successfully at {datetime.now(ist).strftime('%H:%M:%S')}.")
+            send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ 24-hour MarketChart and Candlestick data refreshed successfully at {datetime.now(ist).strftime('%H:%M:%S')}.")
 
         except Exception as e:
             send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error in periodic data load: {e}")
