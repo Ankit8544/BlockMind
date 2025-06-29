@@ -529,16 +529,6 @@ def get_analyzed_data():
 def get_hourly_market_chart_data():
     try:
         market_data = Hourly_MarketChartData_Data()
-        
-        # Flatten to single list
-        flat_data = []
-        for coin_id, entries in market_data.items():
-            for entry in entries:
-                flat_data.append({
-                    "coin_id": coin_id,
-                    "Timestamp": entry.get("Timestamp"),
-                    "Price": entry.get("Price")
-                })
 
         return jsonify({"Hourly Market Chart Data": market_data})
     except Exception as e:
@@ -550,17 +540,7 @@ def get_yearly_market_chart_data():
     try:
         market_data = Yearly_MarketChartData_Data()
 
-        # Flatten to single list
-        flat_data = []
-        for coin_id, entries in market_data.items():
-            for entry in entries:
-                flat_data.append({
-                    "coin_id": coin_id,
-                    "Timestamp": entry.get("Timestamp"),
-                    "Price": entry.get("Price")
-                })
-
-        return jsonify({"Yearly Market Chart Data": flat_data})
+        return jsonify({"Yearly Market Chart Data": market_data})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
