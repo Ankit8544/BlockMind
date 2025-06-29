@@ -540,7 +540,18 @@ def get_hourly_market_chart_data():
 def get_yearly_market_chart_data():
     try:
         market_data = Yearly_MarketChartData_Data()
-        response_json = json.dumps({"Yearly Market Chart Data": market_data}, ensure_ascii=False)
+
+        # Convert all timestamps to string (ISO format) to prevent JSON serialization errors
+        def convert_timestamps(record):
+            for key, value in record.items():
+                if isinstance(value, pd.Timestamp):
+                    record[key] = value.isoformat()
+                elif isinstance(value, datetime):
+                    record[key] = value.isoformat()
+            return record
+
+        converted_data = [convert_timestamps(row) for row in market_data]
+        response_json = json.dumps({"Yearly Market Chart Data": converted_data}, ensure_ascii=False)
         return Response(response=response_json, status=200, mimetype="application/json")
     except Exception as e:
         error_json = json.dumps({"error": str(e)})

@@ -15,8 +15,11 @@ from cachetools import TTLCache
 from Functions.Fetch_Data import get_specific_coin_data
 from Functions.MongoDB import get_coin_ids, refresh_yearly_market_chart_data_with_all_indecators
 from Functions.BlockMindsStatusBot import send_status_message
+import pytz
 
 pd.options.mode.chained_assignment = None
+
+ist = pytz.timezone("Asia/Kolkata")
 
 # CoinGecko API URL
 COINGECKO_API_URL = os.getenv("COINGECKO_API_URL", "https://api.coingecko.com/api/v3")
@@ -231,7 +234,7 @@ def Analysis():
         try:
             # Convert to DataFrame
             prices = pd.DataFrame(data['prices'], columns=['timestamp', 'price'])
-            prices['timestamp'] = pd.to_datetime(prices['timestamp'], unit='ms')
+            prices['timestamp'] = pd.to_datetime(prices['timestamp'], unit='ms').dt.tz_localize('UTC').dt.tz_convert(ist)
             prices.set_index('timestamp', inplace=True)
             
         except KeyError:
