@@ -1,5 +1,6 @@
 from datetime import datetime
-from flask import Flask, jsonify, request, render_template, url_for
+from flask import Flask, jsonify, request, render_template, url_for, Response
+import json
 from flask_cors import CORS
 import pandas as pd
 import numpy as np
@@ -539,10 +540,11 @@ def get_hourly_market_chart_data():
 def get_yearly_market_chart_data():
     try:
         market_data = Yearly_MarketChartData_Data()
-
-        return jsonify({"Yearly Market Chart Data": market_data})
+        response_json = json.dumps({"Yearly Market Chart Data": market_data}, ensure_ascii=False)
+        return Response(response=response_json, status=200, mimetype="application/json")
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        error_json = json.dumps({"error": str(e)})
+        return Response(response=error_json, status=500, mimetype="application/json")
 
 # Flask route to get candlestick data
 @app.route('/get-candlestick-data', methods=['GET'])
