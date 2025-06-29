@@ -11,7 +11,7 @@ import time
 import threading
 from user_agents import parse as parse_ua
 from Functions.Fetch_Data import fetch_and_store_hourly_and_ohlc
-from Functions.MongoDB import UserPortfolio_Data, UserMetadata_Data, refersh_cryptodata, CryptoCoins_Data, is_valid_crypto_symbol, validate_crypto_payload, CryptoCoinList_Data, validate_crypto_payload, UserMetadata_Collection, UserPortfolioCoin_Collection, MarketChartData_Data, CandlestickData_Data
+from Functions.MongoDB import UserPortfolio_Data, UserMetadata_Data, refersh_cryptodata, CryptoCoins_Data, is_valid_crypto_symbol, validate_crypto_payload, CryptoCoinList_Data, validate_crypto_payload, UserMetadata_Collection, UserPortfolioCoin_Collection, Hourly_MarketChartData_Data, Yearly_MarketChartData_Data, CandlestickData_Data
 from Functions.TelegramBot import handle_start, handle_message, set_webhook
 from Functions.BlockMindsStatusBot import send_status_message
 from Functions.Analysis import Analysis
@@ -524,11 +524,11 @@ def get_analyzed_data():
 
     return jsonify(response)
 
-# Flask route to get market chart data
-@app.route('/get-market-chart-data', methods=['GET'])
-def get_market_chart_data():
+# Flask route to get hourly market chart data
+@app.route('/get-hourly-market-chart-data', methods=['GET'])
+def get_hourly_market_chart_data():
     try:
-        market_data = MarketChartData_Data()
+        market_data = Hourly_MarketChartData_Data()
 
         # Flatten to single list
         flat_data = []
@@ -541,6 +541,26 @@ def get_market_chart_data():
                 })
 
         return jsonify({"Market Chart Data": flat_data})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# Flask route to get yearly market chart data
+@app.route('/get-yearly-market-chart-data', methods=['GET'])
+def get_yearly_market_chart_data():
+    try:
+        market_data = Yearly_MarketChartData_Data()
+
+        # Flatten to single list
+        flat_data = []
+        for coin_id, entries in market_data.items():
+            for entry in entries:
+                flat_data.append({
+                    "coin_id": coin_id,
+                    "Timestamp": entry.get("Timestamp"),
+                    "Price": entry.get("Price")
+                })
+
+        return jsonify({"Yearly Market Chart Data": flat_data})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

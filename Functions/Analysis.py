@@ -13,7 +13,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import random
 from cachetools import TTLCache
 from Functions.Fetch_Data import get_specific_coin_data
-from Functions.MongoDB import get_coin_ids
+from Functions.MongoDB import get_coin_ids, refresh_yearly_market_chart_data_with_all_indecators
 from Functions.BlockMindsStatusBot import send_status_message
 
 pd.options.mode.chained_assignment = None
@@ -287,6 +287,12 @@ def Analysis():
         # Final Predicted Price Calculation
         prices['Predicted_Price'] = prices[['SMA_Projection', 'EMA_Projection', 'RSI_Projection', 'MACD_Projection', 'BB_Projection']].mean(axis=1)
 
+        print(f"{Crypto_Id} Market Chart Data is ready to be stored in MongoDB.")
+        print(f"Here Is the columns of {Crypto_Id} Market Chart Data: {list(prices.reset_index().columns)}")
+        
+        # --------- Store Analysis Data ---------
+        refresh_yearly_market_chart_data_with_all_indecators(prices.reset_index(), Crypto_Id)
+        
         # Store data in dictionary
         crypto_analysis_dict[Crypto_Id] = prices
 

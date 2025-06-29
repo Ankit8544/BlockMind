@@ -195,8 +195,8 @@ def CryptoCoins_Data():
         send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error retrieving user portfolio collection: {e}")
         return {}
 
-# Get Market Data in JSON format
-def MarketChartData_Data():
+# Get Hourly Market Data in JSON format
+def Hourly_MarketChartData_Data():
     try:
         if client:
             MarketChartDatadb = client['MarketChartData']
@@ -231,6 +231,44 @@ def MarketChartData_Data():
             return {}
     except Exception as e:
         send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error retrieving market chart data: {e}")
+        return {}
+
+# Get Yearly Market Data in JSON format
+def Yearly_MarketChartData_Data():
+    try:
+        if client:
+            YearlyMarketChartDatadb = client['Yearly_MarketChartData']
+            
+            # Store the final dictionary
+            YearlyMarketChartData = {}
+
+            # Iterate through all collections in YearlyMarketChartData
+            for collection_name in YearlyMarketChartDatadb.list_collection_names():
+                collection = YearlyMarketChartDatadb[collection_name]
+                
+                # Load documents from the collection into DataFrame
+                data = list(collection.find())
+                if not data:
+                    continue  # Skip empty collections
+                
+                df = pd.DataFrame(data)
+
+                # Remove MongoDB default _id column
+                if "_id" in df.columns:
+                    df.drop(columns=["_id"], inplace=True)
+                
+                # Capitalize the first letter of each column name
+                df.columns = [col[0].upper() + col[1:] if col else col for col in df.columns]
+
+                # Convert DataFrame to list of dicts and store
+                YearlyMarketChartData[collection_name] = df.to_dict(orient="records")
+                
+            return YearlyMarketChartData
+        else:
+            send_status_message(Status_TELEGRAM_CHAT_ID, "MongoDB client is None. Cannot access yearly market chart data.")
+            return {}
+    except Exception as e:
+        send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error retrieving yearly market chart data: {e}")
         return {}
 
 # Get Cabdlestick Data in JSON format
@@ -412,7 +450,29 @@ def validate_crypto_payload(cleaned_data):
 def refresh_hourly_market_chart_data(df, crypto_id):
     try:
         if client:
-            db = client["MarketChartData"]
+            db = client["Hourly_MarketChartData"]
+            collection_name = crypto_id.lower()
+
+            if collection_name in db.list_collection_names():
+                db.drop_collection(collection_name)
+
+            # Add the coin ID as a column
+            df["coin_id"] = crypto_id
+            
+            df = df.replace({np.nan: None})
+            records = df.to_dict(orient="records")
+
+            db[collection_name].insert_many(records)
+            print(f"✅ Hourly market chart for '{crypto_id}' inserted successfully.")
+            #send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ Market Chart Data for '{crypto_id}' inserted successfully.")
+    except Exception as e:
+        send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error inserting hourly market chart data for '{crypto_id}': {e}")
+    return True
+
+def refresh_yearly_market_chart_data_with_all_indecators(df, crypto_id):
+    try:
+        if client:
+            db = client["Yearly_MarketChartData"]
             collection_name = crypto_id.lower()
 
             if collection_name in db.list_collection_names():
