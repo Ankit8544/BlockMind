@@ -1,5 +1,5 @@
 from datetime import datetime
-from flask import Flask, jsonify, request, render_template, url_for, Response
+from flask import Flask, jsonify, request, render_template, url_for, Response, make_response
 import json
 from flask_cors import CORS
 import pandas as pd
@@ -541,21 +541,24 @@ def get_yearly_market_chart_data():
     try:
         market_data = Yearly_MarketChartData_Data()
 
-        # Convert all timestamps to string (ISO format) to prevent JSON serialization errors
+        # Convert timestamps to ISO format (string)
         def convert_timestamps(record):
             for key, value in record.items():
-                if isinstance(value, pd.Timestamp):
-                    record[key] = value.isoformat()
-                elif isinstance(value, datetime):
+                if isinstance(value, pd.Timestamp) or isinstance(value, datetime):
                     record[key] = value.isoformat()
             return record
 
-        converted_data = [convert_timestamps(row) for row in market_data]
-        response_json = json.dumps({"Yearly Market Chart Data": converted_data}, ensure_ascii=False)
-        return Response(response=response_json, status=200, mimetype="application/json")
+        cleaned_data = [convert_timestamps(row) for row in market_data]
+
+        # ✅ Convert to clean JSON and explicitly set content-type
+        response = make_response(json.dumps({"Yearly Market Chart Data": cleaned_data}, ensure_ascii=False))
+        response.headers['Content-Type'] = 'application/json'
+        return response
+
     except Exception as e:
-        error_json = json.dumps({"error": str(e)})
-        return Response(response=error_json, status=500, mimetype="application/json")
+        error_response = make_response(json.dumps({"error": str(e)}))
+        error_response.headers['Content-Type'] = 'application/json'
+        return error_response, 500
 
 # Flask route to get candlestick data
 @app.route('/get-candlestick-data', methods=['GET'])
