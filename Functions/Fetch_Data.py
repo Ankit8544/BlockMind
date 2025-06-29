@@ -139,39 +139,6 @@ def get_specific_coin_data(coin_ids):
     df["Return on Investment"] = ((df["Current Price"] - df["All-Time Low Price"]) / df["All-Time Low Price"]) * 100
     return df
 
-def fetch_and_store_hourly_and_ohlc():
-    coin_ids = get_coin_ids()
-    for crypto_id in coin_ids:
-        print(f"🔁 Processing {crypto_id}")
-
-        # Hourly Market Chart Data (1 Day, hourly)
-        try:
-            url_hourly = f"https://api.coingecko.com/api/v3/coins/{crypto_id}/market_chart"
-            params_hourly = {"vs_currency": "usd", "days": "1", "interval": "hourly"}
-            resp = requests.get(url_hourly, params=params_hourly)
-            if resp.status_code == 200:
-                data = resp.json()
-                hourly_df = pd.DataFrame(data["prices"], columns=["timestamp", "price"])
-                hourly_df["timestamp"] = pd.to_datetime(hourly_df["timestamp"], unit="ms").dt.tz_localize("UTC").dt.tz_convert("Asia/Kolkata")
-                hourly_df["timestamp"] = hourly_df["timestamp"].dt.strftime("%Y-%m-%d %H:%M:%S")
-                refresh_hourly_market_chart_data(hourly_df, crypto_id)
-        except Exception as e:
-            send_status_message(Status_TELEGRAM_CHAT_ID, f"⚠️ Error fetching market chart data for {crypto_id}: {e}")
-
-        # OHLC Data (1 Day, 5-min interval)
-        try:
-            url_ohlc = f"https://api.coingecko.com/api/v3/coins/{crypto_id}/ohlc"
-            params_ohlc = {"vs_currency": "usd", "days": "1"}
-            resp = requests.get(url_ohlc, params=params_ohlc)
-            if resp.status_code == 200:
-                data = resp.json()
-                ohlc_df = pd.DataFrame(data, columns=["timestamp", "open", "high", "low", "close"])
-                ohlc_df["timestamp"] = pd.to_datetime(ohlc_df["timestamp"], unit="ms").dt.tz_localize("UTC").dt.tz_convert("Asia/Kolkata")
-                ohlc_df["timestamp"] = ohlc_df["timestamp"].dt.strftime("%Y-%m-%d %H:%M:%S")
-                refresh_ohlc_data(ohlc_df, crypto_id)
-        except Exception as e:
-            send_status_message(Status_TELEGRAM_CHAT_ID, f"⚠️ Error fetching candelstick data for {crypto_id}: {e}")
-
 def fetch_with_backoff(url, params):
     for attempt in range(1, MAX_RETRIES + 1):
         try:
