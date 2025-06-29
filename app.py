@@ -541,16 +541,18 @@ def get_yearly_market_chart_data():
     try:
         market_data = Yearly_MarketChartData_Data()
 
-        # Convert timestamps to ISO format (string)
-        def convert_timestamps(record):
+        # Step 1: Convert timestamps + replace NaN with None
+        def sanitize_row(record):
             for key, value in record.items():
                 if isinstance(value, pd.Timestamp) or isinstance(value, datetime):
                     record[key] = value.isoformat()
+                elif isinstance(value, float) and (pd.isna(value) or np.isnan(value)):
+                    record[key] = None
             return record
 
-        cleaned_data = [convert_timestamps(row) for row in market_data]
+        cleaned_data = [sanitize_row(row) for row in market_data]
 
-        # ✅ Convert to clean JSON and explicitly set content-type
+        # Step 2: Clean JSON dump
         response = make_response(json.dumps({"Yearly Market Chart Data": cleaned_data}, ensure_ascii=False))
         response.headers['Content-Type'] = 'application/json'
         return response
