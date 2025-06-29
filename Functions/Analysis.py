@@ -287,9 +287,6 @@ def Analysis():
         # Final Predicted Price Calculation
         prices['Predicted_Price'] = prices[['SMA_Projection', 'EMA_Projection', 'RSI_Projection', 'MACD_Projection', 'BB_Projection']].mean(axis=1)
 
-        print(f"{Crypto_Id} Market Chart Data is ready to be stored in MongoDB.")
-        print(f"Here Is the columns of {Crypto_Id} Market Chart Data: {list(prices.reset_index().columns)}")
-        
         # --------- Store Analysis Data ---------
         refresh_yearly_market_chart_data_with_all_indecators(prices.reset_index(), Crypto_Id)
         

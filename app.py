@@ -529,7 +529,7 @@ def get_analyzed_data():
 def get_hourly_market_chart_data():
     try:
         market_data = Hourly_MarketChartData_Data()
-
+        
         # Flatten to single list
         flat_data = []
         for coin_id, entries in market_data.items():
@@ -540,7 +540,7 @@ def get_hourly_market_chart_data():
                     "Price": entry.get("Price")
                 })
 
-        return jsonify({"Market Chart Data": flat_data})
+        return jsonify({"Hourly Market Chart Data": market_data})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
