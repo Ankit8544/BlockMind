@@ -55,7 +55,7 @@ ist = pytz.timezone('Asia/Kolkata')
 def load_data():
     try:
         df = Analysis()
-        send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ Based on User Portfolio {df.shape[0]} CryptoCoins Data is loaded successfully in the Flask App. {datetime.now(ist).strftime('%H:%M:%S')}")
+        print(f"✅ Based on User Portfolio {df.shape[0]} CryptoCoins Data is loaded successfully in the Flask App. {datetime.now(ist).strftime('%H:%M:%S')}")
         if df is None or df.empty:
             raise ValueError("Analysis() returned an empty DataFrame.")
         
@@ -72,14 +72,14 @@ def run_periodic_loader():
         try:
             # Step 1: Refresh Analysis data
             load_data()  # This will refresh MongoDB data via refresh_cryptodata inside load_data()
-            send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ MongoDB 'CryptoAnalysis' collection uploaded successfully at {datetime.now(ist).strftime('%H:%M:%S')}.")
+            print(f"✅ MongoDB 'CryptoAnalysis' collection uploaded successfully at {datetime.now(ist).strftime('%H:%M:%S')}.")
             
             # Step 2: Sleep for 1 minutes
             time.sleep(60)  # Wait for 1 minute before next run
             
             # Step 3: Refresh 24hour MarketChart data and Candlestick data
             fetch_and_store_hourly_and_ohlc()
-            send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ 24-hour MarketChart and Candlestick data refreshed successfully at {datetime.now(ist).strftime('%H:%M:%S')}.")
+            print(f"✅ 24-hour MarketChart and Candlestick data refreshed successfully at {datetime.now(ist).strftime('%H:%M:%S')}.")
 
         except Exception as e:
             send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error in periodic data load: {e}")
@@ -527,12 +527,22 @@ def get_analyzed_data():
 # Flask route to get market chart data
 @app.route('/get-market-chart-data', methods=['GET'])
 def get_market_chart_data():
-    
-    response = {
-        "Market Chart Data": MarketChartData_Data()
-    }
-    
-    return jsonify(response)
+    try:
+        market_data = MarketChartData_Data()
+
+        # Flatten to single list
+        flat_data = []
+        for coin_id, entries in market_data.items():
+            for entry in entries:
+                flat_data.append({
+                    "coin_id": coin_id,
+                    "Timestamp": entry.get("Timestamp"),
+                    "Price": entry.get("Price")
+                })
+
+        return jsonify({"Market Chart Data": flat_data})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # Flask route to get candlestick data
 @app.route('/get-candlestick-data', methods=['GET'])

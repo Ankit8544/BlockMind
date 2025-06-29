@@ -418,6 +418,9 @@ def refresh_hourly_market_chart_data(df, crypto_id):
             if collection_name in db.list_collection_names():
                 db.drop_collection(collection_name)
 
+            # Add the coin ID as a column
+            df["coin_id"] = crypto_id
+            
             df = df.replace({np.nan: None})
             records = df.to_dict(orient="records")
 
@@ -436,6 +439,9 @@ def refresh_ohlc_data(df, crypto_id):
 
             if collection_name in db.list_collection_names():
                 db.drop_collection(collection_name)
+                
+            # Add the coin ID as a column
+            df["coin_id"] = crypto_id
 
             df = df.replace({np.nan: None})
             records = df.to_dict(orient="records")
