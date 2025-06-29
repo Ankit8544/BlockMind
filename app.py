@@ -729,6 +729,7 @@ with app.app_context():
     print(f"Flask ENV: {Flask_ENV}")
     if os.environ.get("FLASK_ENV") == "development":
         print("🚀 Starting background data loader thread.")
+        send_status_message(Status_TELEGRAM_CHAT_ID, "🚀 Starting background data loader thread.")
         loader_thread = threading.Thread(target=run_periodic_loader, daemon=True)
         loader_thread.start()
         print("🧵 Data loader thread started.")
