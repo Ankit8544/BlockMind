@@ -282,38 +282,41 @@ def CandlestickData_Data():
     try:
         if client:
             CandlestickDatadb = client['CandlestickData']
-            
-            # Store the final dictionary
-            CandlestickData = {}
 
-            # Iterate through all collections in CandlestickData
+            # List to hold all DataFrames
+            all_dataframes = []
+
+            # Iterate through all collections
             for collection_name in CandlestickDatadb.list_collection_names():
                 collection = CandlestickDatadb[collection_name]
                 
-                # Load documents from the collection into DataFrame
                 data = list(collection.find())
                 if not data:
                     continue  # Skip empty collections
-                
+
                 df = pd.DataFrame(data)
 
                 # Remove MongoDB default _id column
                 if "_id" in df.columns:
                     df.drop(columns=["_id"], inplace=True)
-                
+
                 # Capitalize the first letter of each column name
                 df.columns = [col[0].upper() + col[1:] if col else col for col in df.columns]
 
-                # Convert DataFrame to list of dicts and store
-                CandlestickData[collection_name] = df.to_dict(orient="records")
-                
-            return CandlestickData
+                all_dataframes.append(df)
+
+            # Combine all DataFrames
+            if all_dataframes:
+                final_df = pd.concat(all_dataframes, ignore_index=True)
+                return final_df.to_dict(orient="records")
+            else:
+                return []
         else:
-            send_status_message(Status_TELEGRAM_CHAT_ID, "MongoDB client is None. Cannot access candlestick data.")
-            return {}
+            send_status_message(Status_TELEGRAM_CHAT_ID, "MongoDB client is None. Cannot access market chart data.")
+            return []
     except Exception as e:
-        send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error retrieving candlestick data: {e}")
-        return {}
+        send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error retrieving market chart data: {e}")
+        return []
 
 
 # -------------------------- Processing Data Before inserting to MongoDB -------------------------- #

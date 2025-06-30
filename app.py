@@ -565,12 +565,29 @@ def get_yearly_market_chart_data():
 # Flask route to get candlestick data
 @app.route('/get-candlestick-data', methods=['GET'])
 def get_candlestick_data():
-    
-    response = {
-        "Candlestick Data": CandlestickData_Data()
-    }
-    
-    return jsonify(response)
+    try:
+        candlestick_data = CandlestickData_Data()
+
+        # Step 1: Convert timestamps + replace NaN with None
+        def sanitize_row(record):
+            for key, value in record.items():
+                if isinstance(value, pd.Timestamp) or isinstance(value, datetime):
+                    record[key] = value.isoformat()
+                elif isinstance(value, float) and (pd.isna(value) or np.isnan(value)):
+                    record[key] = None
+            return record
+
+        cleaned_data = [sanitize_row(row) for row in candlestick_data]
+
+        # Step 2: Clean JSON dump
+        response = make_response(json.dumps({"Candlestick Data": cleaned_data}, ensure_ascii=False))
+        response.headers['Content-Type'] = 'application/json'
+        return response
+
+    except Exception as e:
+        error_response = make_response(json.dumps({"error": str(e)}))
+        error_response.headers['Content-Type'] = 'application/json'
+        return error_response, 500
 
 # Flask route to get logs
 @app.route('/getlogs')
