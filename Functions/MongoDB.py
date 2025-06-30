@@ -2,6 +2,7 @@ import pandas as pd
 import pytz
 from dotenv import load_dotenv
 import os
+import requests
 import re
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
@@ -321,69 +322,67 @@ def CandlestickData_Data():
 
 # -------------------------- Processing Data Before inserting to MongoDB -------------------------- #
 
-# Get Coin IDs from CoinsList Collection using Coin Name to match with UserPortfolio Collection
+
+# Fetch and update all coins list in MongoDB
+def fetch_and_store_all_coin_ids():
+    url = "https://api.coingecko.com/api/v3/coins/list"
+
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        coins_data = response.json()
+
+        if not coins_data:
+            print("No coins data received from CoinGecko.")
+            return
+
+        collection = CoinsList_Collection()
+        if collection is not None:
+            # Clear existing data
+            existing_count = collection.count_documents({})
+            if existing_count > 0:
+                collection.delete_many({})
+                print(f"Deleted {existing_count} existing documents from 'CoinsList' collection.")
+
+            # Insert new data
+            collection.insert_many(coins_data)
+            print(f"Inserted {len(coins_data)} new coin documents into MongoDB.")
+        else:
+            print("Collection not accessible.")
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching coins list from CoinGecko: {e}")
+
+# Get Coin IDs based on Portfolio Assets
 def get_coin_ids():
-    if client:
-        try:
-            CryptoCoinsdb = client['CryptoCoins']
-            UserPortfolioCollection = CryptoCoinsdb['UserPortfolio']
+    user_df = pd.DataFrame(UserPortfolio_Data())
+    crypto_list_df = pd.DataFrame(CryptoCoinList_Data())
 
-            if UserPortfolioCollection is not None:
-                data = []
-                for doc in UserPortfolioCollection.find():
-                    doc['_id'] = str(doc['_id'])  # Convert ObjectId to string
-                    data.append(doc)
+    # Unique coin names and symbols from user portfolio
+    coin_names = user_df['coin_name'].unique().tolist()
+    coin_symbols = user_df['coin_symbol'].unique().tolist()
 
-                if not data:
-                    return pd.DataFrame()
+    coin_ids = []
 
-                df = pd.DataFrame(data)
+    # Match symbol and name to find the correct ID from crypto list
+    for symbol, name in zip(coin_symbols, coin_names):
+        match = crypto_list_df[
+            (crypto_list_df['symbol'] == symbol) & 
+            (crypto_list_df['name'] == name)
+        ]
+        if not match.empty:
+            coin_ids.append(match['id'].iloc[0])
+        else:
+            coin_ids.append(None)  # Or handle differently
 
-                if '_id' in df.columns:
-                    df['_id'] = df['_id'].astype(str)
-
-                coin_names_raw = df['coin_name'].unique().tolist()
-
-                # Clean names (remove special characters, extra spaces)
-                Coin_Names = [re.sub(r'\W+', ' ', name).strip() for name in coin_names_raw]
-
-                CoinlistsCollection = CryptoCoinsdb['CoinsList']
-
-                # Use case-insensitive regex matching for each coin name
-                query = {
-                    "$or": [{"name": {"$regex": f"^{re.escape(name)}$", "$options": "i"}} for name in Coin_Names]
-                }
-
-                cursor = CoinlistsCollection.find(query, {"name": 1, "id": 1, "_id": 0})
-                result = list(cursor)
-
-                coin_ids = [doc['id'] for doc in result]
-                matched_names = [doc['name'] for doc in result]
-
-                unmatched = {
-                    name for name in Coin_Names
-                    if name.strip().lower() not in {m.strip().lower() for m in matched_names}
-                }
-                if unmatched:
-                    send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Unmatched Coin Names: {unmatched}")
-
-                return coin_ids
-            else:
-                send_status_message(Status_TELEGRAM_CHAT_ID, "❌ 'UserPortfolio' collection not found.")
-                return []
-        except Exception as e:
-            send_status_message(Status_TELEGRAM_CHAT_ID, f"🚨 Error: {e}")
-            return []
-    else:
-        send_status_message(Status_TELEGRAM_CHAT_ID, "❌ MongoDB client is None.")
-        return []
+    return coin_ids
 
 # Insert the Newly Analyzed CryptoData 
-def refersh_cryptodata(df):
+def refersh_analyzed_data(df):
     try:
         if client:
             CryptoDataDB = client["CryptoCoins"]
-            CryptoDataCollection = CryptoDataDB["CryptoAnalysis"]
+            CryptoDataCollection = CryptoDataDB["Analyzed_CryptoCurrency_Data"]
 
             # Replace NaN with None for MongoDB compatibility
             df = df.replace({np.nan: None})
@@ -399,6 +398,8 @@ def refersh_cryptodata(df):
 
     except Exception as e:
         send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error while uploading to MongoDB: {e}")
+
+
 
 # Function to validate crypto symbol and name
 def is_valid_crypto_symbol(symbol, coin_name=None):
@@ -455,6 +456,46 @@ def validate_crypto_payload(cleaned_data):
         return False, " | ".join(errors)
 
     return True, "Valid"
+
+# Function to check if user's coin data already exists
+def is_user_portfolio_exist(user_mail, coin_name=None, coin_symbol=None, purchase_date=None):
+    try:
+        collection = UserPortfolioCoin_Collection()
+        query = {"user_mail": user_mail.strip().lower()}  # Normalize email
+
+        # Optional filters if provided
+        if coin_name:
+            query["coin_name"] = coin_name.strip()
+        if coin_symbol:
+            query["coin_symbol"] = coin_symbol.strip().lower()
+        if purchase_date:
+            query["purchase_date"] = purchase_date.strip()
+
+        # Check existence
+        existing_entry = collection.find_one(query)
+
+        if existing_entry:
+            return {
+                "success": True,
+                "message": "✅ Data already exists for this user.",
+                "status_code": 200
+            }
+        else:
+            return {
+                "success": False,
+                "message": "❌ Data not found for this user.",
+                "status_code": 200
+            }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "message": f"❌ Error while checking existing data: {str(e)}",
+            "status_code": 200
+        }
+
+
+
 
 def refresh_hourly_market_chart_data(df, crypto_id):
     try:

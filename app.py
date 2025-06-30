@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import Flask, jsonify, request, render_template, url_for, Response, make_response
 import json
 from flask_cors import CORS
@@ -12,7 +12,7 @@ import time
 import threading
 from user_agents import parse as parse_ua
 from Functions.Fetch_Data import fetch_and_store_hourly_and_ohlc
-from Functions.MongoDB import UserPortfolio_Data, UserMetadata_Data, refersh_cryptodata, CryptoCoins_Data, is_valid_crypto_symbol, validate_crypto_payload, CryptoCoinList_Data, validate_crypto_payload, UserMetadata_Collection, UserPortfolioCoin_Collection, Hourly_MarketChartData_Data, Yearly_MarketChartData_Data, CandlestickData_Data
+from Functions.MongoDB import fetch_and_store_all_coin_ids, UserPortfolio_Data, UserMetadata_Data, refersh_analyzed_data, CryptoCoins_Data, is_valid_crypto_symbol, validate_crypto_payload, CryptoCoinList_Data, validate_crypto_payload, UserMetadata_Collection, UserPortfolioCoin_Collection, Hourly_MarketChartData_Data, Yearly_MarketChartData_Data, CandlestickData_Data, is_user_portfolio_exist
 from Functions.TelegramBot import handle_start, handle_message, set_webhook
 from Functions.BlockMindsStatusBot import send_status_message
 from Functions.Analysis import Analysis
@@ -60,14 +60,14 @@ def load_data():
         if df is None or df.empty:
             raise ValueError("Analysis() returned an empty DataFrame.")
         
-        refersh_cryptodata(df=df)
+        refersh_analyzed_data(df=df)
         
     except Exception as e:
         send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error loading crypto analysis data: {e}")
         return pd.DataFrame()
 
 # Periodic data loader function
-def run_periodic_loader():
+def run_periodic_analyzed_data_loader():
     
     while True:
         try:
@@ -87,6 +87,30 @@ def run_periodic_loader():
         
         finally:
             time.sleep(1800)  # Wait after completion of each run
+
+# Periodic data loader for daily update at 12:00 AM IST
+def run_daily_coin_list_loader():
+    while True:
+        try:
+            now = datetime.now(ist)
+            next_run = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+            # If it's already past midnight today, schedule for next day
+            if now >= next_run:
+                next_run += timedelta(days=1)
+
+            # Calculate sleep duration
+            sleep_duration = (next_run - now).total_seconds()
+            print(f"Sleeping for {int(sleep_duration)} seconds until next run at {next_run.strftime('%Y-%m-%d %H:%M:%S')} IST")
+            time.sleep(sleep_duration)
+
+            # Run the coin list update task
+            fetch_and_store_all_coin_ids()
+            send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ Coins list updated at {datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')} IST")
+
+        except Exception as e:
+            send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error during coin list update: {e}")
+            time.sleep(3600)  # Wait 1 hour before retrying in case of error
 
 # Load initial data
 @app.after_request
@@ -170,13 +194,13 @@ def receive_crypto_coins_detail_from_power_app():
         
         # Step 4: Normalize data
         cleaned_data = {
-            "user_mail": data['User Mail'].strip(),       # normalize email
+            "user_mail": data['User Mail'].strip(),
             "coin_name": coin_name.strip(),
             "coin_symbol": coin_symbol.strip().lower(),
-            "purchase_date": iso_date                             # ISO string format
+            "purchase_date": iso_date
         }
         
-        # Step 6: Insert User Metadata
+        # Step 5: Insert User Metadata
         try:
             # Initialize collection
             UserMetaDataCollection = UserMetadata_Collection()
@@ -198,18 +222,18 @@ def receive_crypto_coins_detail_from_power_app():
         except Exception as e:
             print(f"⚠️ Failed to process User Metadata logic: {e}")
         
-        # Step 7: Validate MongoDB Payload Format
+        # Step 6: Validate MongoDB Payload Format
         is_valid, msg = validate_crypto_payload(cleaned_data)
         if not is_valid:
             return jsonify({"success": 'False', "message": msg}), 200
 
-        # Step 8: Insert into MongoDB
+        # Step 7: Insert into MongoDB
         UserPortfolioCollection = UserPortfolioCoin_Collection()
         result = UserPortfolioCollection.insert_one(cleaned_data)
         print(f"✅ Data inserted with ID: {result.inserted_id}")
         print(f"Inserted data: {cleaned_data}")
 
-        # Step 9: Return success response
+        # Step 8: Return success response
         print("🚀 Crypto investment data saved successfully.")
         return jsonify({
             "success": 'True',
@@ -274,6 +298,20 @@ def receive_crypto_coins_detail_from_power_app_with_payment():
                 "success": 'False',
                 "message": "Invalid date format. Use YYYY-MM-DD or MM/DD/YYYY."
             }), 200
+            
+        # Step 4: Check if portfolio data already exists
+        existence_check = is_user_portfolio_exist(
+            user_mail=data['User Mail'],
+            coin_name=data["Name of Coin"],
+            coin_symbol=data["Coin Symbol"],
+            purchase_date=data["Purchase Date"]
+        )
+
+        if existence_check["success"]:
+            return jsonify({
+                "success": 'True',
+                "message": existence_check["message"]
+            }), existence_check["status_code"]
 
         # ✅ All validations passed
         return jsonify({
@@ -742,10 +780,18 @@ with app.app_context():
 with app.app_context():
     Flask_ENV = os.environ.get("FLASK_ENV", "production")
     print(f"Flask ENV: {Flask_ENV}")
+
     if os.environ.get("FLASK_ENV") == "development":
         print("🚀 Starting background data loader thread.")
         send_status_message(Status_TELEGRAM_CHAT_ID, "🚀 Starting background data loader thread.")
-        loader_thread = threading.Thread(target=run_periodic_loader, daemon=True)
+        
+        # Thread 1: Frequent loader (e.g. every few minutes)
+        loader_thread = threading.Thread(target=run_periodic_analyzed_data_loader, daemon=True)
         loader_thread.start()
+
+        # Thread 2: Daily coin list loader (runs at 12:00 AM IST)
+        coin_list_thread = threading.Thread(target=run_daily_coin_list_loader, daemon=True)
+        coin_list_thread.start()
+
         print("🧵 Data loader thread started.")
 
