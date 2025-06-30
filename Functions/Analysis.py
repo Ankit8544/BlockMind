@@ -13,7 +13,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import random
 from cachetools import TTLCache
 from Functions.Fetch_Data import get_specific_coin_data
-from Functions.MongoDB import get_coin_ids, refresh_yearly_market_chart_data_with_all_indecators
+from Functions.MongoDB import get_coin_ids, refresh_yearly_market_chart_data_with_all_indecators, UserPortfolio_Data
 from Functions.BlockMindsStatusBot import send_status_message
 import pytz
 
@@ -199,6 +199,21 @@ def get_reddit_sentiment(query, limit=50):
 
     return avg_sentiment, mention_count, avg_upvotes, avg_comments
 
+# Get Price on the Purchase Date from CoinGecko
+def get_crypto_price_on_purchase_date(symbol: str, date_str: str) -> float:
+    try:
+        timestamp = int(datetime.strptime(date_str, "%Y-%m-%d").timestamp())
+        url = f"https://min-api.cryptocompare.com/data/pricehistorical?fsym={symbol.upper()}&tsyms=USD&ts={timestamp}"
+        headers = {
+            "Accept": "application/json",
+        }
+        response = requests.get(url, headers=headers)
+        data = response.json()
+        return data[symbol.upper()]["USD"]
+    except Exception as e:
+        print(f"Error fetching price: {e}")
+        return None
+
 # Full Analysis
 def Analysis():
     
@@ -240,6 +255,14 @@ def Analysis():
         except KeyError:
             send_status_message(Status_TELEGRAM_CHAT_ID, f"Skipping {Crypto_Id} due to missing keys in data.")
             continue
+        
+        # Price on Purchase Date
+        Assets = UserPortfolio_Data()
+        Assets_df = pd.DataFrame(Assets)
+        symbol = df[df['Coin ID'] == Crypto_Id]['Symbol'].iloc[0]
+        purchase_date =  Assets_df[Assets_df['coin_symbol'] == symbol]['purchase_date'].iloc[0]
+        
+        prices['Price on Puchase Date'] = get_crypto_price_on_purchase_date(symbol=symbol, date_str=purchase_date)
 
         # Calculate daily returns
         prices['returns'] = prices['price'].pct_change()
@@ -315,6 +338,7 @@ def Analysis():
     df["Contract Address"] = df.apply(lambda row: get_contract_address(row["Coin ID"], row["Symbol"]), axis=1)
     df["Liquidity"] = df.apply(lambda row: get_liquidity(row["Contract Address"], row["Coin ID"]), axis=1)
     df[["Reddit Sentiment", "Reddit Mentions", "Avg Reddit Upvotes", "Avg Reddit Comments"]] = df["Coin Name"].apply(lambda x: pd.Series(get_reddit_sentiment(x)))
+    df["Price on Puchase Date"]=df['Coin ID'].map({k: v['Price on Puchase Date'].iloc[-1] for k, v in crypto_analysis_dict.items()})
     
     # --------- Price Change Percentage Fix ---------
     df['7d Price Change Percentage (%)'] = df['Coin ID'].map(

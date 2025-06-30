@@ -494,8 +494,6 @@ def refresh_yearly_market_chart_data_with_all_indecators(df, crypto_id):
             records = df.to_dict(orient="records")
 
             db[collection_name].insert_many(records)
-            print(f"✅ Hourly market chart for '{crypto_id}' inserted successfully.")
-            #send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ Market Chart Data for '{crypto_id}' inserted successfully.")
     except Exception as e:
         send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error inserting hourly market chart data for '{crypto_id}': {e}")
     return True
