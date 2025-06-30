@@ -302,9 +302,7 @@ def receive_crypto_coins_detail_from_power_app_with_payment():
         # Step 4: Check if portfolio data already exists
         existence_check = is_user_portfolio_exist(
             user_mail=data['User Mail'],
-            coin_name=data["Name of Coin"],
-            coin_symbol=data["Coin Symbol"],
-            purchase_date=data["Purchase Date"]
+            coin_name=data["Name of Coin"]
         )
 
         if existence_check["success"]:

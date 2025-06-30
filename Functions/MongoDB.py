@@ -458,32 +458,24 @@ def validate_crypto_payload(cleaned_data):
     return True, "Valid"
 
 # Function to check if user's coin data already exists
-def is_user_portfolio_exist(user_mail, coin_name=None, coin_symbol=None, purchase_date=None):
+def is_user_portfolio_exist(user_mail, coin_name):
     try:
         collection = UserPortfolioCoin_Collection()
-        query = {"user_mail": user_mail.strip().lower()}  # Normalize email
+        query = {
+            "user_mail": user_mail.strip().lower(),
+            "coin_name": coin_name.strip()
+        }
 
-        # Optional filters if provided
-        if coin_name:
-            query["coin_name"] = coin_name.strip()
-        if coin_symbol:
-            query["coin_symbol"] = coin_symbol.strip().lower()
-        if purchase_date:
-            query["purchase_date"] = purchase_date.strip()
-
-        # Check existence
-        existing_entry = collection.find_one(query)
-
-        if existing_entry:
+        if collection.find_one(query):
             return {
                 "success": True,
-                "message": "✅ Data already exists for this user.",
+                "message": "✅ This coin already exists in the user's portfolio.",
                 "status_code": 200
             }
         else:
             return {
                 "success": False,
-                "message": "❌ Data not found for this user.",
+                "message": "🔍 No duplicate coin found for this user.",
                 "status_code": 200
             }
 
