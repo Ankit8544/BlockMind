@@ -461,12 +461,14 @@ def validate_crypto_payload(cleaned_data):
 def is_user_portfolio_exist(user_mail, coin_name):
     try:
         collection = UserPortfolioCoin_Collection()
+
         query = {
-            "user_mail": user_mail.strip().lower(),
-            "coin_name": coin_name.strip()
+            "user_mail": {"$regex": f"^{user_mail.strip()}$", "$options": "i"},
+            "coin_name": {"$regex": f"^{coin_name.strip()}$", "$options": "i"}
         }
 
-        if collection.find_one(query):
+        result = collection.find_one(query)
+        if result:
             return {
                 "success": True,
                 "message": "✅ This coin already exists in the user's portfolio.",
@@ -483,7 +485,7 @@ def is_user_portfolio_exist(user_mail, coin_name):
         return {
             "success": False,
             "message": f"❌ Error while checking existing data: {str(e)}",
-            "status_code": 200
+            "status_code": 500
         }
 
 
