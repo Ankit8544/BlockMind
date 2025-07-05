@@ -177,7 +177,7 @@ def CryptoCoins_Data():
     try:
         if client:
             CryptoDataDB = client["CryptoCoins"]
-            CryptoDataCollection = CryptoDataDB["CryptoAnalysis"]
+            CryptoDataCollection = CryptoDataDB["Analyzed_CryptoCurrency_Data"]
             
             if CryptoDataCollection is not None:
                 # Retrieve all documents from the collection and store them in a dict
