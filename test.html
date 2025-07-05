@@ -1,0 +1,165 @@
+Coin Page = 
+"<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            background: #fff;
+            color: #2d3a49;
+        }
+
+        .container {
+            max-width: 600px;
+            padding: 16px;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 35px;
+            color: #131722;
+            margin-bottom: 4px;
+        }
+
+        .coin-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 100%;
+        }
+
+        .subtext {
+            font-weight: 400;
+            font-size: 15px;
+            color: #7a8499;
+        }
+
+        .tag {
+            background: #f1f5f9;
+            border-radius: 12px;
+            color: #000000;
+            padding: 2px 7px;
+            margin-left: 4px;
+        }
+
+        .price-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 4px;
+        }
+
+        .price {
+            font-weight: 700;
+            font-size: 32px;
+            color: #131722;
+        }
+
+        .price-change {
+            font-weight: 600;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            color: "&[Trend_Color]&";
+        }
+
+        .price-change.up {
+            color: #20a25c;
+        }
+
+        .price-change svg {
+            width: 14px;
+            height: 14px;
+            margin-right: 2px;
+        }
+
+        .info-tooltip {
+            font-weight: 400;
+            font-size: 12px;
+            color: #7a8499;
+            border: 1px solid #c1c7d0;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            text-align: center;
+            line-height: 16px;
+            cursor: default;
+            user-select: none;
+        }
+
+        .btc-amount {
+            font-size: 13px;
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btc-amount strong {
+            color: #20a25c;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: linear-gradient(90deg, #ffb30a, #215185 66%, #e3e3e3 66%);
+            border-radius: 10px;
+            margin-top: 16px;
+        }
+
+        .range-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #7a8499;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <header class='header'>
+            <img class='coin-icon' src='"& SELECTEDVALUE('User Portfolio Based Crypto Data'[Image URL]) &"' alt='Coin Icon'>
+            <span>"& SELECTEDVALUE('User Portfolio Based Crypto Data'[Coin Name]) &"</span>
+            <span class='subtext'>"& SELECTEDVALUE('User Portfolio Based Crypto Data'[Symbol]) &" Price</span>
+            <span class='subtext tag'>#"& SELECTEDVALUE('User Portfolio Based Crypto Data'[Market Cap Rank]) &"</span>
+        </header>
+
+        <section class='price-row'>
+            <div class='price'>$"& SELECTEDVALUE('User Portfolio Based Crypto Data'[Current Price]) &"</div>
+
+            <div class='price-change'>
+            "& [Trend] &"
+            </div>
+        </section>
+
+        <section class='btc-amount'>
+            <span>1.0000 " & SELECTEDVALUE('User Portfolio Based Crypto Data'[Symbol]) &"</span>
+            <strong>$"& SELECTEDVALUE('User Portfolio Based Crypto Data'[Current Price]) &"</strong>
+        </section>
+        <br>
+        <div class='progress-bar-container' style='position: relative; background: #e3e3e3; border-radius: 10px; height: 8px; width: 100%;'>
+            <div class='progress-bar-fill' style='
+                height: 100%;
+                background: linear-gradient(90deg, #ffb30a, #215185);
+                border-radius: 10px;
+                width: "& [Price Range Fill Percent] &";
+            '></div>
+        </div>
+
+
+        <div class='range-labels'>
+            <span>$"& SELECTEDVALUE('User Portfolio Based Crypto Data'[24h Low Price]) &"</span>
+            <span>24h Range</span>
+            <span>$"& SELECTEDVALUE('User Portfolio Based Crypto Data'[24h High Price]) &"</span>
+        </div>
+    </div>
+</body>
+</html>
+"

@@ -399,8 +399,6 @@ def refersh_analyzed_data(df):
     except Exception as e:
         send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error while uploading to MongoDB: {e}")
 
-
-
 # Function to validate crypto symbol and name
 def is_valid_crypto_symbol(symbol, coin_name=None):
     if not symbol or not isinstance(symbol, str):
@@ -487,9 +485,6 @@ def is_user_portfolio_exist(user_mail, coin_name):
             "message": f"❌ Error while checking existing data: {str(e)}",
             "status_code": 500
         }
-
-
-
 
 def refresh_hourly_market_chart_data(df, crypto_id):
     try:
