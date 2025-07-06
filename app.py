@@ -12,7 +12,7 @@ import time
 import threading
 from user_agents import parse as parse_ua
 from Functions.Fetch_Data import fetch_and_store_hourly_and_ohlc
-from Functions.MongoDB import fetch_and_store_all_coin_ids, UserPortfolio_Data, UserMetadata_Data, refersh_analyzed_data, CryptoCoins_Data, is_valid_crypto_symbol, validate_crypto_payload, CryptoCoinList_Data, validate_crypto_payload, UserMetadata_Collection, UserPortfolioCoin_Collection, Hourly_MarketChartData_Data, Yearly_MarketChartData_Data, CandlestickData_Data, is_user_portfolio_exist
+from Functions.MongoDB import Crypto_News_Data ,fetch_and_store_all_coin_ids, UserPortfolio_Data, UserMetadata_Data, refersh_analyzed_data, CryptoCoins_Data, is_valid_crypto_symbol, validate_crypto_payload, CryptoCoinList_Data, validate_crypto_payload, UserMetadata_Collection, UserPortfolioCoin_Collection, Hourly_MarketChartData_Data, Yearly_MarketChartData_Data, CandlestickData_Data, is_user_portfolio_exist
 from Functions.TelegramBot import handle_start, handle_message, set_webhook
 from Functions.BlockMindsStatusBot import send_status_message
 from Functions.Analysis import Analysis
@@ -624,6 +624,16 @@ def get_candlestick_data():
         error_response = make_response(json.dumps({"error": str(e)}))
         error_response.headers['Content-Type'] = 'application/json'
         return error_response, 500
+
+# Flask route to get crypto news data
+@app.route('/get-news-data', method=['GET'])
+def get_crypto_news_data():
+    try:
+        news_data = Crypto_News_Data()
+
+        return jsonify({"Crypto News Data": news_data})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # Flask route to get logs
 @app.route('/getlogs')

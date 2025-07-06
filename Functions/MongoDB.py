@@ -319,6 +319,29 @@ def CandlestickData_Data():
         send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error retrieving market chart data: {e}")
         return []
 
+# Get NewsAPI Crypto Data Collection in JSON format
+def Crypto_News_Data():
+    try:
+        if client:
+            NewsDB = client["CryptoCoins"]
+            NewsCollection = NewsDB["Crypto_News_Data"]
+
+            if NewsCollection is not None:
+                NewsData = []
+                for doc in NewsCollection.find():
+                    doc['_id'] = str(doc['_id'])  # Convert ObjectId to string
+                    NewsData.append(doc)
+                return NewsData
+            else:
+                send_status_message(Status_TELEGRAM_CHAT_ID, "NewsAPI Collection is None. Cannot retrieve news data.")
+                return {}
+        else:
+            send_status_message(Status_TELEGRAM_CHAT_ID, "MongoDB client is None. Cannot access news data collection.")
+            return {}
+    except Exception as e:
+        send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error retrieving NewsAPI data from MongoDB: {e}")
+        return {}
+
 
 # -------------------------- Processing Data Before inserting to MongoDB -------------------------- #
 
@@ -398,6 +421,28 @@ def refersh_analyzed_data(df):
 
     except Exception as e:
         send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error while uploading to MongoDB: {e}")
+
+# Insert the latest Crypto News Data
+def refresh_crypto_news_data(df):
+    try:
+        if client:
+            NewsDB = client["CryptoCoins"]
+            NewsCollection = NewsDB["Crypto_News_Data"]
+
+            # Replace NaN with None
+            df = df.replace({np.nan: None})
+            records = df.to_dict(orient='records')
+
+            if NewsCollection.count_documents({}) > 0:
+                print(Status_TELEGRAM_CHAT_ID, "🗑️ Old News Data found in 'NewsAPI_Crypto_Data' Collection. Deleting it.")
+                NewsCollection.delete_many({})
+            
+            print(Status_TELEGRAM_CHAT_ID, "📤 Inserting new news data into 'NewsAPI_Crypto_Data' collection.")
+            NewsCollection.insert_many(records)
+            print(Status_TELEGRAM_CHAT_ID, "✅ MongoDB 'NewsAPI_Crypto_Data' collection uploaded successfully.")
+
+    except Exception as e:
+        send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error while uploading News data to MongoDB: {e}")
 
 # Function to validate crypto symbol and name
 def is_valid_crypto_symbol(symbol, coin_name=None):
