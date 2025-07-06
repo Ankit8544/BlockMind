@@ -626,7 +626,7 @@ def get_candlestick_data():
         return error_response, 500
 
 # Flask route to get crypto news data
-@app.route('/get-news-data', method=['GET'])
+@app.route('/get-news-data', methods=['GET'])
 def get_crypto_news_data():
     try:
         news_data = Crypto_News_Data()
