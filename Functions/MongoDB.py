@@ -196,129 +196,6 @@ def CryptoCoins_Data():
         send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error retrieving user portfolio collection: {e}")
         return {}
 
-# Get Hourly Market Data in JSON format
-def Hourly_MarketChartData_Data():
-    try:
-        if client:
-            HourlyMarketChartDatadb = client['Hourly_MarketChartData']
-
-            # List to hold all DataFrames
-            all_dataframes = []
-
-            # Iterate through all collections
-            for collection_name in HourlyMarketChartDatadb.list_collection_names():
-                collection = HourlyMarketChartDatadb[collection_name]
-                
-                data = list(collection.find())
-                if not data:
-                    continue  # Skip empty collections
-
-                df = pd.DataFrame(data)
-
-                # Remove MongoDB default _id column
-                if "_id" in df.columns:
-                    df.drop(columns=["_id"], inplace=True)
-
-                # Capitalize the first letter of each column name
-                df.columns = [col[0].upper() + col[1:] if col else col for col in df.columns]
-
-                all_dataframes.append(df)
-
-            # Combine all DataFrames
-            if all_dataframes:
-                final_df = pd.concat(all_dataframes, ignore_index=True)
-                return final_df.to_dict(orient="records")
-            else:
-                return []
-        else:
-            send_status_message(Status_TELEGRAM_CHAT_ID, "MongoDB client is None. Cannot access market chart data.")
-            return []
-    except Exception as e:
-        send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error retrieving market chart data: {e}")
-        return []
-
-# Get Yearly Market Data in JSON format
-def Yearly_MarketChartData_Data():
-    try:
-        if client:
-            YearlyMarketChartDatadb = client['Yearly_MarketChartData']
-
-            # List to hold all DataFrames
-            all_dataframes = []
-
-            # Iterate through all collections
-            for collection_name in YearlyMarketChartDatadb.list_collection_names():
-                collection = YearlyMarketChartDatadb[collection_name]
-                
-                data = list(collection.find())
-                if not data:
-                    continue  # Skip empty collections
-
-                df = pd.DataFrame(data)
-
-                # Remove MongoDB default _id column
-                if "_id" in df.columns:
-                    df.drop(columns=["_id"], inplace=True)
-
-                # Capitalize the first letter of each column name
-                df.columns = [col[0].upper() + col[1:] if col else col for col in df.columns]
-
-                all_dataframes.append(df)
-
-            # Combine all DataFrames
-            if all_dataframes:
-                final_df = pd.concat(all_dataframes, ignore_index=True)
-                return final_df.to_dict(orient="records")
-            else:
-                return []
-        else:
-            send_status_message(Status_TELEGRAM_CHAT_ID, "MongoDB client is None. Cannot access market chart data.")
-            return []
-    except Exception as e:
-        send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error retrieving market chart data: {e}")
-        return []
-
-# Get Cabdlestick Data in JSON format
-def CandlestickData_Data():
-    try:
-        if client:
-            CandlestickDatadb = client['CandlestickData']
-
-            # List to hold all DataFrames
-            all_dataframes = []
-
-            # Iterate through all collections
-            for collection_name in CandlestickDatadb.list_collection_names():
-                collection = CandlestickDatadb[collection_name]
-                
-                data = list(collection.find())
-                if not data:
-                    continue  # Skip empty collections
-
-                df = pd.DataFrame(data)
-
-                # Remove MongoDB default _id column
-                if "_id" in df.columns:
-                    df.drop(columns=["_id"], inplace=True)
-
-                # Capitalize the first letter of each column name
-                df.columns = [col[0].upper() + col[1:] if col else col for col in df.columns]
-
-                all_dataframes.append(df)
-
-            # Combine all DataFrames
-            if all_dataframes:
-                final_df = pd.concat(all_dataframes, ignore_index=True)
-                return final_df.to_dict(orient="records")
-            else:
-                return []
-        else:
-            send_status_message(Status_TELEGRAM_CHAT_ID, "MongoDB client is None. Cannot access market chart data.")
-            return []
-    except Exception as e:
-        send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error retrieving market chart data: {e}")
-        return []
-
 # Get NewsAPI Crypto Data Collection in JSON format
 def Crypto_News_Data():
     try:
@@ -531,66 +408,262 @@ def is_user_portfolio_exist(user_mail, coin_name):
             "status_code": 500
         }
 
-def refresh_hourly_market_chart_data(df, crypto_id):
+
+# --- Hourly MarketChart and Cabdlestick Data ---
+
+# Refresh Hourly Candlestick Data
+def Refresh_Hourly_CandlestickData_Data(df, crypto_id):
+    try:
+        if client:
+            db = client["Hourly_CandlestickData"]
+            collection_name = crypto_id.lower()
+
+            collection = db[collection_name]
+            collection.delete_many({})  # clear previous records
+
+            df["coin_id"] = crypto_id
+            df = df.replace({np.nan: None})
+            records = df.to_dict(orient="records")
+
+            if records:
+                collection.insert_many(records)
+                print(f"✅ Hourly Candlestick Data for '{crypto_id}' updated successfully.")
+            else:
+                print(f"⚠️ No candlestick data to insert for '{crypto_id}'.")
+
+    except Exception as e:
+        send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error inserting OHLC data for '{crypto_id}': {e}")
+
+# Get Hourly Candlestick Data in JSON format
+def Hourly_CandlestickData_Data():
+    try:
+        if client:
+            CandlestickDatadb = client['Hourly_CandlestickData']
+
+            # List to hold all DataFrames
+            all_dataframes = []
+
+            # Iterate through all collections
+            for collection_name in CandlestickDatadb.list_collection_names():
+                collection = CandlestickDatadb[collection_name]
+                
+                data = list(collection.find())
+                if not data:
+                    continue  # Skip empty collections
+
+                df = pd.DataFrame(data)
+
+                # Remove MongoDB default _id column
+                if "_id" in df.columns:
+                    df.drop(columns=["_id"], inplace=True)
+
+                # Capitalize the first letter of each column name
+                df.columns = [col[0].upper() + col[1:] if col else col for col in df.columns]
+
+                all_dataframes.append(df)
+
+            # Combine all DataFrames
+            if all_dataframes:
+                final_df = pd.concat(all_dataframes, ignore_index=True)
+                return final_df.to_dict(orient="records")
+            else:
+                return []
+        else:
+            send_status_message(Status_TELEGRAM_CHAT_ID, "MongoDB client is None. Cannot access market chart data.")
+            return []
+    except Exception as e:
+        send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error retrieving market chart data: {e}")
+        return []
+
+# Refresh Hourly MarketChart Data
+def Refresh_Hourly_MarketChart_Data(df, crypto_id):
     try:
         if client:
             db = client["Hourly_MarketChartData"]
             collection_name = crypto_id.lower()
 
-            if collection_name in db.list_collection_names():
-                db.drop_collection(collection_name)
+            collection = db[collection_name]
+            collection.delete_many({})  # clear previous records
 
-            # Add the coin ID as a column
             df["coin_id"] = crypto_id
-            
             df = df.replace({np.nan: None})
             records = df.to_dict(orient="records")
 
-            db[collection_name].insert_many(records)
-            print(f"✅ Hourly market chart for '{crypto_id}' inserted successfully.")
-            #send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ Market Chart Data for '{crypto_id}' inserted successfully.")
+            if records:
+                collection.insert_many(records)
+                print(f"✅ Hourly Market Chart Data for '{crypto_id}' inserted successfully.")
+            else:
+                print(f"⚠️ No hourly data to insert for '{crypto_id}'.")
+
     except Exception as e:
         send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error inserting hourly market chart data for '{crypto_id}': {e}")
-    return True
 
-def refresh_yearly_market_chart_data_with_all_indecators(df, crypto_id):
+# Get Hourly MarketChart Data in JSON format
+def Hourly_MarketChartData_Data():
+    try:
+        if client:
+            HourlyMarketChartDatadb = client['Hourly_MarketChartData']
+
+            # List to hold all DataFrames
+            all_dataframes = []
+
+            # Iterate through all collections
+            for collection_name in HourlyMarketChartDatadb.list_collection_names():
+                collection = HourlyMarketChartDatadb[collection_name]
+                
+                data = list(collection.find())
+                if not data:
+                    continue  # Skip empty collections
+
+                df = pd.DataFrame(data)
+
+                # Remove MongoDB default _id column
+                if "_id" in df.columns:
+                    df.drop(columns=["_id"], inplace=True)
+
+                # Capitalize the first letter of each column name
+                df.columns = [col[0].upper() + col[1:] if col else col for col in df.columns]
+
+                all_dataframes.append(df)
+
+            # Combine all DataFrames
+            if all_dataframes:
+                final_df = pd.concat(all_dataframes, ignore_index=True)
+                return final_df.to_dict(orient="records")
+            else:
+                return []
+        else:
+            send_status_message(Status_TELEGRAM_CHAT_ID, "MongoDB client is None. Cannot access market chart data.")
+            return []
+    except Exception as e:
+        send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error retrieving market chart data: {e}")
+        return []
+
+
+# --- Yearly MarketChart and OHLC Data ---
+
+# Refresh Yearly Candlestick Data
+def Refresh_Yearly_CandlestickData_Data(df, crypto_id):
+    try:
+        if client:
+            db = client["Yearly_CandlestickData"]
+            collection = db[crypto_id.lower()]
+
+            # Ensure timestamp uniqueness
+            collection.create_index("timestamp", unique=True)
+
+            df["coin_id"] = crypto_id
+            df = df.replace({np.nan: None})
+            records = df.to_dict(orient="records")
+
+            if records:
+                for record in records:
+                    collection.update_one(
+                        {"timestamp": record["timestamp"]},
+                        {"$set": record},
+                        upsert=True
+                    )
+                print(f"✅ Yearly Candlestick Data for '{crypto_id}' updated successfully.")
+            else:
+                print(f"⚠️ No candlestick data to insert for '{crypto_id}'.")
+
+    except Exception as e:
+        send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error inserting OHLC data for '{crypto_id}': {e}")
+
+# Get Yearly Candlestick Data in JSON format
+def Yearly_CandlestickData_Data():
+    try:
+        if client:
+            db = client['Yearly_CandlestickData']
+            all_dataframes = []
+
+            for collection_name in db.list_collection_names():
+                collection = db[collection_name]
+                data = list(collection.find())
+
+                if not data:
+                    continue
+
+                df = pd.DataFrame(data)
+
+                if "_id" in df.columns:
+                    df.drop(columns=["_id"], inplace=True)
+
+                df.columns = [col[0].upper() + col[1:] if col else col for col in df.columns]
+                all_dataframes.append(df)
+
+            if all_dataframes:
+                final_df = pd.concat(all_dataframes, ignore_index=True)
+                return final_df.to_dict(orient="records")
+            else:
+                return []
+        else:
+            send_status_message(Status_TELEGRAM_CHAT_ID, "MongoDB client is None. Cannot access Yearly Candlestick data.")
+            return []
+    except Exception as e:
+        send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error retrieving Yearly Candlestick data: {e}")
+        return []
+
+# Refresh Yearly MarketChart Data
+def Refresh_Yearly_MarketChartData_Data(df, crypto_id):
     try:
         if client:
             db = client["Yearly_MarketChartData"]
-            collection_name = crypto_id.lower()
+            collection = db[crypto_id.lower()]
 
-            if collection_name in db.list_collection_names():
-                db.drop_collection(collection_name)
+            # Ensure timestamp uniqueness
+            collection.create_index("timestamp", unique=True)
 
-            # Add the coin ID as a column
             df["coin_id"] = crypto_id
-            
             df = df.replace({np.nan: None})
             records = df.to_dict(orient="records")
 
-            db[collection_name].insert_many(records)
+            if records:
+                for record in records:
+                    collection.update_one(
+                        {"timestamp": record["timestamp"]},
+                        {"$set": record},
+                        upsert=True
+                    )
+                print(f"✅ Yearly market chart for '{crypto_id}' updated successfully.")
+            else:
+                print(f"⚠️ No hourly data to insert for '{crypto_id}'.")
+
     except Exception as e:
         send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error inserting hourly market chart data for '{crypto_id}': {e}")
-    return True
 
-def refresh_ohlc_data(df, crypto_id):
+# Get Yearly MarketChart Data in JSON format
+def Yearly_MarketChartData_Data():
     try:
         if client:
-            db = client["CandlestickData"]
-            collection_name = crypto_id.lower()
+            db = client['Yearly_MarketChartData']
+            all_dataframes = []
 
-            if collection_name in db.list_collection_names():
-                db.drop_collection(collection_name)
-                
-            # Add the coin ID as a column
-            df["coin_id"] = crypto_id
+            for collection_name in db.list_collection_names():
+                collection = db[collection_name]
+                data = list(collection.find())
 
-            df = df.replace({np.nan: None})
-            records = df.to_dict(orient="records")
-            
-            db[collection_name].insert_many(records)
-            print(f"✅ Candlestick Data for '{crypto_id}' inserted successfully.")
-            #send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ Candlestick Data for '{crypto_id}' inserted successfully.")
+                if not data:
+                    continue
+
+                df = pd.DataFrame(data)
+
+                if "_id" in df.columns:
+                    df.drop(columns=["_id"], inplace=True)
+
+                df.columns = [col[0].upper() + col[1:] if col else col for col in df.columns]
+                all_dataframes.append(df)
+
+            if all_dataframes:
+                final_df = pd.concat(all_dataframes, ignore_index=True)
+                return final_df.to_dict(orient="records")
+            else:
+                return []
+        else:
+            send_status_message(Status_TELEGRAM_CHAT_ID, "MongoDB client is None. Cannot access Yearly Market Chart data.")
+            return []
     except Exception as e:
-        send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error inserting OHLC data for '{crypto_id}': {e}")
+        send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error retrieving Yearly Market Chart data: {e}")
+        return []
+
 

@@ -11,8 +11,8 @@ import re
 import time
 import threading
 from user_agents import parse as parse_ua
-from Functions.Fetch_Data import fetch_and_store_hourly_and_ohlc
-from Functions.MongoDB import Crypto_News_Data ,fetch_and_store_all_coin_ids, UserPortfolio_Data, UserMetadata_Data, refersh_analyzed_data, CryptoCoins_Data, is_valid_crypto_symbol, validate_crypto_payload, CryptoCoinList_Data, validate_crypto_payload, UserMetadata_Collection, UserPortfolioCoin_Collection, Hourly_MarketChartData_Data, Yearly_MarketChartData_Data, CandlestickData_Data, is_user_portfolio_exist
+from Functions.Fetch_Data import fetch_and_store_hourly_data, fetch_and_store_yearly_data
+from Functions.MongoDB import Crypto_News_Data ,fetch_and_store_all_coin_ids, UserPortfolio_Data, UserMetadata_Data, refersh_analyzed_data, CryptoCoins_Data, is_valid_crypto_symbol, validate_crypto_payload, CryptoCoinList_Data, validate_crypto_payload, UserMetadata_Collection, UserPortfolioCoin_Collection, Hourly_MarketChartData_Data, Yearly_MarketChartData_Data, Hourly_CandlestickData_Data, Yearly_CandlestickData_Data, is_user_portfolio_exist
 from Functions.TelegramBot import handle_start, handle_message, set_webhook
 from Functions.BlockMindsStatusBot import send_status_message
 from Functions.Analysis import Analysis
@@ -66,30 +66,46 @@ def load_data():
         send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error loading crypto analysis data: {e}")
         return pd.DataFrame()
 
-# Periodic data loader function
-def run_periodic_analyzed_data_loader():
-    
+# ---- 1. Periodicly Refresh Analyzed Crypto Data in Every 6 Hours ----
+def run_refresh_cryptodata_loader():
     while True:
         try:
-            # Step 1: Refresh Analysis data
+            # Refresh Analyzed Crypto Data
             load_data()  # This will refresh MongoDB data via refresh_cryptodata inside load_data()
             send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ MongoDB 'CryptoAnalysis' collection uploaded successfully at {datetime.now(ist).strftime('%H:%M:%S')}.")
-            
-            # Step 2: Sleep for 1 minutes
-            time.sleep(60)  # Wait for 1 minute before next run
-            
-            # Step 3: Refresh 24hour MarketChart data and Candlestick data
-            fetch_and_store_hourly_and_ohlc()
-            send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ 24-hour MarketChart and Candlestick data refreshed successfully at {datetime.now(ist).strftime('%H:%M:%S')}.")
-
         except Exception as e:
-            send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error in periodic data load: {e}")
+            send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error refreshing cryptodata: {e}")
         
         finally:
-            time.sleep(1800)  # Wait after completion of each run
+            time.sleep(21600)  # Sleep for 6 hours (6 * 60 * 60)
 
-# Periodic data loader for daily update at 12:00 AM IST
-def run_daily_coin_list_loader():
+# ---- 2. Periodicly Refresh Hourly MarketChart data and Candlestick data in Every 1 Hours ----
+def run_refresh_marketchart_ohlc_loader():
+    while True:
+        now = datetime.now(ist)
+        current_hour = now.hour
+        
+        # Run only between 5 AM (05) and 11 PM (23)
+        if 5 <= current_hour <= 23:
+            try:
+                # Call your refresh functions
+                fetch_and_store_hourly_data()
+                send_status_message(Status_TELEGRAM_CHAT_ID,
+                    f"✅ 24-hour MarketChart and Candlestick data refreshed successfully at {now.strftime('%H:%M:%S')}.")
+            except Exception as e:
+                send_status_message(Status_TELEGRAM_CHAT_ID,
+                    f"❌ Error in periodic data load: {e}")
+        else:
+            print(f"⏸ Skipped refresh at {now.strftime('%H:%M:%S')} (outside allowed time window).")
+
+        # Sleep until the start of the next full hour
+        now = datetime.now(ist)
+        next_run = now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+        sleep_duration = (next_run - now).total_seconds()
+        time.sleep(sleep_duration)
+
+# ---- 3. Periodicly Refresh Whiole Cryptocoin List listed on the CoinGecko at 12:00 AM IST ---- 
+def run_refresh_coin_list_loader():
     while True:
         try:
             now = datetime.now(ist)
@@ -104,9 +120,13 @@ def run_daily_coin_list_loader():
             print(f"Sleeping for {int(sleep_duration)} seconds until next run at {next_run.strftime('%Y-%m-%d %H:%M:%S')} IST")
             time.sleep(sleep_duration)
 
-            # Run the coin list update task
+            # 🔁 Coin List Update
             fetch_and_store_all_coin_ids()
             send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ Coins list updated at {datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')} IST")
+
+            # 🔁 1-Year Data Fetch
+            fetch_and_store_yearly_data()
+            send_status_message(Status_TELEGRAM_CHAT_ID, f"📊 1-Year Data updated at {datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')} IST")
 
         except Exception as e:
             send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error during coin list update: {e}")
@@ -561,7 +581,7 @@ def get_analyzed_data():
 
     return jsonify(response)
 
-# Flask route to get hourly market chart data
+# Flask route to get hourly marketchart data
 @app.route('/get-hourly-market-chart-data', methods=['GET'])
 def get_hourly_market_chart_data():
     try:
@@ -571,7 +591,7 @@ def get_hourly_market_chart_data():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# Flask route to get yearly market chart data
+# Flask route to get yearly marketchart data
 @app.route('/get-yearly-market-chart-data', methods=['GET'])
 def get_yearly_market_chart_data():
     try:
@@ -598,11 +618,11 @@ def get_yearly_market_chart_data():
         error_response.headers['Content-Type'] = 'application/json'
         return error_response, 500
 
-# Flask route to get candlestick data
-@app.route('/get-candlestick-data', methods=['GET'])
-def get_candlestick_data():
+# Flask route to get hourly candlestick data
+@app.route('/get-hourly-candlestick-data', methods=['GET'])
+def get_hourly_candlestick_data():
     try:
-        candlestick_data = CandlestickData_Data()
+        candlestick_data = Hourly_CandlestickData_Data()
 
         # Step 1: Convert timestamps + replace NaN with None
         def sanitize_row(record):
@@ -617,6 +637,33 @@ def get_candlestick_data():
 
         # Step 2: Clean JSON dump
         response = make_response(json.dumps({"Candlestick Data": cleaned_data}, ensure_ascii=False))
+        response.headers['Content-Type'] = 'application/json'
+        return response
+
+    except Exception as e:
+        error_response = make_response(json.dumps({"error": str(e)}))
+        error_response.headers['Content-Type'] = 'application/json'
+        return error_response, 500
+
+# Flask route to get yearly candlestick data
+@app.route('/get-yearly-candlestick-data', methods=['GET'])
+def get_yearly_candlestick_data():
+    try:
+        candlestick_data = Yearly_CandlestickData_Data()  # Replace with your actual data fetching function
+
+        # Step 1: Convert timestamps + replace NaN with None
+        def sanitize_row(record):
+            for key, value in record.items():
+                if isinstance(value, pd.Timestamp) or isinstance(value, datetime):
+                    record[key] = value.isoformat()
+                elif isinstance(value, float) and (pd.isna(value) or np.isnan(value)):
+                    record[key] = None
+            return record
+
+        cleaned_data = [sanitize_row(row) for row in candlestick_data]
+
+        # Step 2: Clean JSON dump
+        response = make_response(json.dumps({"Yearly Candlestick Data": cleaned_data}, ensure_ascii=False))
         response.headers['Content-Type'] = 'application/json'
         return response
 
@@ -707,7 +754,7 @@ def telegram_webhook():
 
     return jsonify({"status": "ok"}), 200
 
-# ✅ Flask route to add Telegram username WITHOUT verifying it
+# Flask route to add Telegram username
 @app.route('/subscribe', methods=['POST'])
 def add_telegram_username():
     try:
@@ -793,12 +840,16 @@ with app.app_context():
         print("🚀 Starting background data loader thread.")
         send_status_message(Status_TELEGRAM_CHAT_ID, "🚀 Starting background data loader thread.")
         
-        # Thread 1: Frequent loader (e.g. every few minutes)
-        loader_thread = threading.Thread(target=run_periodic_analyzed_data_loader, daemon=True)
-        loader_thread.start()
+        # Thread 1: Refresh Analyzed Crypto Data Loader runs in every 6 Hours
+        Analyzed_Data_thread = threading.Thread(target=run_refresh_cryptodata_loader, daemon=True)
+        Analyzed_Data_thread.start()
+        
+        # Thread 2: Refresh Hourly MarketChart data and Candlestick data Loader runs in every Hours 
+        Hourly_MarketChart_data_and_Candlestick_data_thread = threading.Thread(target=run_refresh_coin_list_loader, daemon=True)
+        Hourly_MarketChart_data_and_Candlestick_data_thread.start()
 
-        # Thread 2: Daily coin list loader (runs at 12:00 AM IST)
-        coin_list_thread = threading.Thread(target=run_daily_coin_list_loader, daemon=True)
+        # Thread 3: Coin List Loader runs at 12:00 AM IST
+        coin_list_thread = threading.Thread(target=run_refresh_coin_list_loader, daemon=True)
         coin_list_thread.start()
 
         print("🧵 Data loader thread started.")

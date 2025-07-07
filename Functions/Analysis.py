@@ -312,9 +312,6 @@ def Analysis():
 
         # Final Predicted Price Calculation
         prices['Predicted_Price'] = prices[['SMA_Projection', 'EMA_Projection', 'RSI_Projection', 'MACD_Projection', 'BB_Projection']].mean(axis=1)
-
-        # --------- Store Analysis Data ---------
-        refresh_yearly_market_chart_data_with_all_indecators(prices.reset_index(), Crypto_Id)
         
         # Store data in dictionary
         crypto_analysis_dict[Crypto_Id] = prices
