@@ -842,7 +842,7 @@ with app.app_context():
         Analyzed_Data_thread.start()
         
         # Thread 2: Refresh Hourly MarketChart data and Candlestick data Loader runs in every Hours 
-        Hourly_MarketChart_data_and_Candlestick_data_thread = threading.Thread(target=run_refresh_coin_list_loader, daemon=True)
+        Hourly_MarketChart_data_and_Candlestick_data_thread = threading.Thread(target=run_refresh_marketchart_ohlc_loader, daemon=True)
         Hourly_MarketChart_data_and_Candlestick_data_thread.start()
 
         # Thread 3: Coin List Loader runs at 12:00 AM IST
