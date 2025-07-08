@@ -72,7 +72,7 @@ def run_refresh_cryptodata_loader():
         try:
             # Refresh Analyzed Crypto Data
             load_data()  # This will refresh MongoDB data via refresh_cryptodata inside load_data()
-            send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ MongoDB 'CryptoAnalysis' collection uploaded successfully at {datetime.now(ist).strftime('%H:%M:%S')}.")
+            send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ 'Analyzed Cytpro Data' refreshed successfully at {datetime.now(ist).strftime('%H:%M:%S')} IST.")
         except Exception as e:
             send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error refreshing cryptodata: {e}")
         
@@ -90,8 +90,7 @@ def run_refresh_marketchart_ohlc_loader():
             try:
                 # Call your refresh functions
                 fetch_and_store_hourly_data()
-                send_status_message(Status_TELEGRAM_CHAT_ID,
-                    f"✅ 24-hour MarketChart and Candlestick data refreshed successfully at {now.strftime('%H:%M:%S')}.")
+                send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ 'Hourly MarketChart Data' and 'Hourly Candlestick Data' refreshed successfully at {now.strftime('%H:%M:%S')} IST.")
             except Exception as e:
                 send_status_message(Status_TELEGRAM_CHAT_ID,
                     f"❌ Error in periodic data load: {e}")
@@ -122,11 +121,11 @@ def run_refresh_coin_list_loader():
 
             # 🔁 Coin List Update
             fetch_and_store_all_coin_ids()
-            send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ Coins list updated at {datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')} IST")
+            send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ 'Coins list' refreshed successfully at {datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')} IST which is listed on CoinGecok.")
 
             # 🔁 1-Year Data Fetch
             fetch_and_store_yearly_data()
-            send_status_message(Status_TELEGRAM_CHAT_ID, f"📊 1-Year Data updated at {datetime.now(ist).strftime('%Y-%m-%d %H:%M:%S')} IST")
+            send_status_message(Status_TELEGRAM_CHAT_ID, f"✅ 'Yearly MarketChart Data' and 'Yearly Candlestick Data' refreshed successfully at {now.strftime('%H:%M:%S')} IST.")
 
         except Exception as e:
             send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error during coin list update: {e}")
@@ -837,8 +836,6 @@ with app.app_context():
     print(f"Flask ENV: {Flask_ENV}")
 
     if os.environ.get("FLASK_ENV") == "development":
-        print("🚀 Starting background data loader thread.")
-        send_status_message(Status_TELEGRAM_CHAT_ID, "🚀 Starting background data loader thread.")
         
         # Thread 1: Refresh Analyzed Crypto Data Loader runs in every 6 Hours
         Analyzed_Data_thread = threading.Thread(target=run_refresh_cryptodata_loader, daemon=True)
@@ -852,5 +849,4 @@ with app.app_context():
         coin_list_thread = threading.Thread(target=run_refresh_coin_list_loader, daemon=True)
         coin_list_thread.start()
 
-        print("🧵 Data loader thread started.")
 
