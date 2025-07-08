@@ -189,6 +189,9 @@ def fetch_and_store_hourly_data():
             #print(Status_TELEGRAM_CHAT_ID, f"⚠️ Error fetching market chart for {crypto_id}: {e}")
             send_status_message(Status_TELEGRAM_CHAT_ID, f"⚠️ Error fetching market chart for {crypto_id}: {e}")
 
+        # Wait for Some time to make it safer
+        time.sleep(60)
+
         # 🔹 OHLC Data (interval=5 min)
         try:
             url_ohlc = f"https://api.coingecko.com/api/v3/coins/{crypto_id}/ohlc"
@@ -235,6 +238,9 @@ def fetch_and_store_yearly_data():
         except Exception as e:
             send_status_message(Status_TELEGRAM_CHAT_ID, f"⚠️ Error fetching 1-Year Market Chart for {crypto_id}: {e}")
 
+        # Wait for Some time to make it safer
+        time.sleep(60)
+        
         # 🔹 OHLC Data for 365 days
         try:
             url_ohlc = f"https://api.coingecko.com/api/v3/coins/{crypto_id}/ohlc"
