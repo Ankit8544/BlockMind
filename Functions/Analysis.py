@@ -377,7 +377,17 @@ def Analysis():
     df['Predicted Price'] = df['Coin ID'].map({k: v['Predicted_Price'].iloc[-1] for k, v in crypto_analysis_dict.items()})
     df["Contract Address"] = df.apply(lambda row: get_contract_address(row["Coin ID"], row["Symbol"]), axis=1)
     df["Liquidity"] = df.apply(lambda row: get_liquidity(row["Contract Address"], row["Coin ID"]), axis=1)
-    df[["Reddit Sentiment", "Reddit Mentions", "Avg Reddit Upvotes", "Avg Reddit Comments", "Sentiment Trend", "Positive Mentions", "Neutral Mentions", "Negative Mentions"]] = df["Coin Name"].apply(lambda x: pd.Series(get_reddit_sentiment_with_pagination(x)))
+    
+    reddit_data = df["Coin Name"].apply(get_reddit_sentiment_with_pagination)
+    df["Reddit Sentiment"] = reddit_data.apply(lambda x: x["Avg Sentiment"])
+    df["Reddit Mentions"] = reddit_data.apply(lambda x: x["Post Volume"])
+    df["Avg Reddit Upvotes"] = reddit_data.apply(lambda x: x["Avg Upvotes"])
+    df["Avg Reddit Comments"] = reddit_data.apply(lambda x: x["Avg Comments"])
+    df["Sentiment Trend"] = reddit_data.apply(lambda x: x["Sentiment Trend"])
+    df["Positive Mentions"] = reddit_data.apply(lambda x: x["Positive Mentions"])
+    df["Neutral Mentions"] = reddit_data.apply(lambda x: x["Neutral Mentions"])
+    df["Negative Mentions"] = reddit_data.apply(lambda x: x["Negative Mentions"])
+    
     df["Price on Puchase Date"]=df['Coin ID'].map({k: v['Price on Puchase Date'].iloc[-1] for k, v in crypto_analysis_dict.items()})
     
     # --------- Price Change Percentage Fix ---------
