@@ -246,7 +246,7 @@ def get_all_news_with_analysis(min_articles=100):
             try:
                 if not article.get("title"):
                     continue
-                sentiment, score = get_sentiment(article["title"] + " " + article["description"])  # Combining title + description
+                sentiment, score = get_sentiment(article["title"])
                 article["sentiment"] = sentiment
                 article["sentiment_score"] = score
 

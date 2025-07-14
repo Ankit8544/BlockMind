@@ -377,17 +377,7 @@ def Analysis():
     df['Predicted Price'] = df['Coin ID'].map({k: v['Predicted_Price'].iloc[-1] for k, v in crypto_analysis_dict.items()})
     df["Contract Address"] = df.apply(lambda row: get_contract_address(row["Coin ID"], row["Symbol"]), axis=1)
     df["Liquidity"] = df.apply(lambda row: get_liquidity(row["Contract Address"], row["Coin ID"]), axis=1)
-    
-    # New Call with Pagination (change function name and parameters):
-    df["Reddit Sentiment"] = df["Coin Name"].apply(lambda x: get_reddit_sentiment_with_pagination(x)["Avg Sentiment"])
-    df["Reddit Mentions"] = df["Coin Name"].apply(lambda x: get_reddit_sentiment_with_pagination(x)["Post Volume"])
-    df["Avg Reddit Upvotes"] = df["Coin Name"].apply(lambda x: get_reddit_sentiment_with_pagination(x)["Avg Upvotes"])
-    df["Avg Reddit Comments"] = df["Coin Name"].apply(lambda x: get_reddit_sentiment_with_pagination(x)["Avg Comments"])
-    df["Sentiment Trend"] = df["Coin Name"].apply(lambda x: get_reddit_sentiment_with_pagination(x)["Sentiment Trend"])
-    df["Positive Mentions"] = df["Coin Name"].apply(lambda x: get_reddit_sentiment_with_pagination(x)["Positive Mentions"])
-    df["Neutral Mentions"] = df["Coin Name"].apply(lambda x: get_reddit_sentiment_with_pagination(x)["Neutral Mentions"])
-    df["Negative Mentions"] = df["Coin Name"].apply(lambda x: get_reddit_sentiment_with_pagination(x)["Negative Mentions"])      
-    
+    df[["Reddit Sentiment", "Reddit Mentions", "Avg Reddit Upvotes", "Avg Reddit Comments", "Sentiment Trend", "Positive Mentions", "Neutral Mentions", "Negative Mentions"]] = df["Coin Name"].apply(lambda x: pd.Series(get_reddit_sentiment_with_pagination(x)))
     df["Price on Puchase Date"]=df['Coin ID'].map({k: v['Price on Puchase Date'].iloc[-1] for k, v in crypto_analysis_dict.items()})
     
     # --------- Price Change Percentage Fix ---------
