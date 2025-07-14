@@ -277,6 +277,30 @@ def get_coin_ids():
 
     return coin_ids
 
+# Get Coin Names Based on Portfolio Assets
+def get_coin_names():
+    user_df = pd.DataFrame(UserPortfolio_Data())
+    crypto_list_df = pd.DataFrame(CryptoCoinList_Data())
+
+    # Unique coin names and symbols from user portfolio
+    coin_names = user_df['coin_name'].unique().tolist()
+    coin_symbols = user_df['coin_symbol'].unique().tolist()
+
+    matched_names = []
+
+    # Match by both symbol and name
+    for symbol, name in zip(coin_symbols, coin_names):
+        match = crypto_list_df[
+            (crypto_list_df['symbol'].str.lower() == symbol.lower()) &
+            (crypto_list_df['name'].str.lower() == name.lower())
+        ]
+        if not match.empty:
+            matched_names.append(match['name'].iloc[0])  # Add matched coin name
+        else:
+            matched_names.append(name)  # Use original name if no match found
+
+    return matched_names
+
 # Insert the Newly Analyzed CryptoData 
 def refersh_analyzed_data(df):
     try:
