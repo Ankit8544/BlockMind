@@ -192,7 +192,7 @@ def get_reddit_sentiment_with_pagination(query, total_posts=500, batch_size=100)
 
         posts.extend(batch_posts)
         fetched_posts += len(batch_posts)
-        after = batch_posts[-1].full_name  # Update the "after" parameter for the next batch
+        after = batch_posts[-1].id   # Update the "after" parameter for the next batch
 
         if len(batch_posts) < batch_size:
             break  # If we don't have enough posts for the next batch, stop fetching
