@@ -139,6 +139,10 @@ def get_specific_coin_data(coin_ids):
     df["Return on Investment"] = ((df["Current Price"] - df["All-Time Low Price"]) / df["All-Time Low Price"]) * 100
     return df
 
+
+
+
+# Tackel Rate-limit 
 def fetch_with_backoff(url, params):
     for attempt in range(1, MAX_RETRIES + 1):
         try:
@@ -158,6 +162,7 @@ def fetch_with_backoff(url, params):
 
     return None
 
+# Fetch and Store  
 def fetch_and_store_hourly_data():
     coin_ids = get_coin_ids()
     for crypto_id in coin_ids:

@@ -4,14 +4,20 @@ import ta  # Technical Analysis Library
 import requests
 import os
 import time
+import tweepy
+import praw
+from textblob import TextBlob
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from datetime import datetime
 import requests
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import random
 from cachetools import TTLCache
 from Functions.Fetch_Data import get_specific_coin_data
 from Functions.MongoDB import get_coin_ids, UserPortfolio_Data
 from Functions.BlockMindsStatusBot import send_status_message
 import pytz
+from Functions.MongoDB import Yearly_MarketChartData_Data
 
 pd.options.mode.chained_assignment = None
 
@@ -29,6 +35,16 @@ TWITTER_API_SECRET = os.getenv("TWITTER_API_SECRET")
 TWITTER_ACCESS_TOKEN = os.getenv("TWITTER_ACCESS_TOKEN")
 TWITTER_ACCESS_SECRET = os.getenv("TWITTER_ACCESS_SECRET")
 TWITTER_BEARER_TOKEN = os.getenv("TWITTER_BEARER_TOKEN")
+
+# Reddit API credentials
+reddit = praw.Reddit(
+    client_id = "XQaZSF7aFd169cXHuQs4uA",
+    client_secret = "NCF7iHpFDgkSpwYOESMVRlcrHRx3_Q",
+    user_agent = "meme-coin-sentiment"
+)
+
+# Initialize Twitter Client
+twitter_client = tweepy.Client(bearer_token=TWITTER_BEARER_TOKEN)
 
 # Cache responses to avoid repeated API calls
 cache = TTLCache(maxsize=500, ttl=900)  # Store 100 results for 5 minutes
@@ -160,6 +176,73 @@ def get_liquidity(contract_address, coin_id):
         return get_native_coin_liquidity(coin_id)  # Use CoinGecko for native coins
     return get_dex_liquidity(contract_address)  # Use DexScreener for tokens
 
+# Function to get sentiment score & engagement metrics
+def get_reddit_sentiment_with_pagination(query, total_posts=500, batch_size=100):
+    sia = SentimentIntensityAnalyzer()
+    posts = []
+    after = None
+    fetched_posts = 0
+
+    while fetched_posts < total_posts:
+        # Make a request with the "after" parameter for pagination
+        search_results = reddit.subreddit("cryptocurrency+CryptoMarkets").search(query, limit=batch_size, params={'after': after})
+        batch_posts = list(search_results)
+
+        if not batch_posts:
+            break
+
+        posts.extend(batch_posts)
+        fetched_posts += len(batch_posts)
+        after = batch_posts[-1].id
+
+        if len(batch_posts) < batch_size:
+            break  # If we don't have enough posts for the next batch, stop fetching
+
+    # Perform sentiment analysis on the collected posts
+    sentiment_score = 0
+    count = 0
+    total_upvotes = 0
+    total_comments = 0
+    post_volumes = 0
+    sentiment_trends = []
+    positive_mentions = 0
+    neutral_mentions = 0
+    negative_mentions = 0
+
+    for post in posts:
+        sentiment = sia.polarity_scores(post.title)
+        sentiment_score += sentiment['compound']
+        sentiment_trends.append(sentiment['compound'])  # Track sentiment per post
+
+        total_upvotes += post.score
+        total_comments += post.num_comments
+        post_volumes += 1
+        count += 1
+
+        # Track sentiment breakdown
+        if sentiment['compound'] >= 0.05:
+            positive_mentions += 1
+        elif sentiment['compound'] <= -0.05:
+            negative_mentions += 1
+        else:
+            neutral_mentions += 1
+
+    avg_sentiment = sentiment_score / count if count > 0 else 0
+    avg_upvotes = total_upvotes / count if count > 0 else 0
+    avg_comments = total_comments / count if count > 0 else 0
+    sentiment_trend = np.mean(sentiment_trends) if sentiment_trends else 0
+
+    return {
+        "Avg Sentiment": avg_sentiment,
+        "Post Volume": post_volumes,
+        "Avg Upvotes": avg_upvotes,
+        "Avg Comments": avg_comments,
+        "Sentiment Trend": sentiment_trend,
+        "Positive Mentions": positive_mentions,
+        "Neutral Mentions": neutral_mentions,
+        "Negative Mentions": negative_mentions
+    }
+
 # Get Price on the Purchase Date from CoinGecko
 def get_crypto_price_on_purchase_date(symbol: str, date_str: str) -> float:
     try:
@@ -188,33 +271,26 @@ def Analysis():
     # Dictionary to store Sharpe Ratios and technical indicators for each Crypto_Id
     crypto_analysis_dict = {}
 
+    # Coin loop
     for Crypto_Id in crypto_Ids:
-        url = f"https://api.coingecko.com/api/v3/coins/{Crypto_Id}/market_chart"
-        params = {'vs_currency': 'usd', 'days': '365', 'interval': 'daily'}        
-        data = None
-        for attempt in range(10):  # Retry up to 10 times
-            response = requests.get(url, params=params)
-            if response.status_code == 200:
-                data = response.json()
-                break
-            elif response.status_code == 429:
-                time.sleep(60)
-            else:
-                send_status_message(Status_TELEGRAM_CHAT_ID, f"Failed to fetch data for {Crypto_Id}: {response.status_code}")
-                break
-
-        if not data:
-            send_status_message(Status_TELEGRAM_CHAT_ID, f"Skipping {Crypto_Id} due to missing data.")
-            continue
-
         try:
-            # Convert to DataFrame
-            prices = pd.DataFrame(data['prices'], columns=['timestamp', 'price'])
-            prices['timestamp'] = pd.to_datetime(prices['timestamp'], unit='ms').dt.tz_localize('UTC').dt.tz_convert(ist)
-            prices.set_index('timestamp', inplace=True)
-            
-        except KeyError:
-            send_status_message(Status_TELEGRAM_CHAT_ID, f"Skipping {Crypto_Id} due to missing keys in data.")
+            # ✅ Fetch all market chart data from MongoDB once
+            full_market_data = pd.DataFrame(Yearly_MarketChartData_Data())
+        
+            # ✅ Filter data for this coin
+            coin_data = full_market_data[full_market_data['Coin_id'] == Crypto_Id].copy()
+
+            if coin_data.empty:
+                send_status_message(Status_TELEGRAM_CHAT_ID, f"⚠️ No historical market data found for {Crypto_Id}. Skipping.")
+                continue
+
+            # ✅ Convert timestamp and prepare price series
+            coin_data['Timestamp'] = pd.to_datetime(coin_data['Timestamp'])
+            coin_data.set_index('Timestamp', inplace=True)
+            prices = coin_data[['Price']].rename(columns={'Price': 'price'}).sort_index()
+
+        except Exception as e:
+            send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error processing market chart data for {Crypto_Id}: {e}")
             continue
         
         # Price on Purchase Date
@@ -295,6 +371,16 @@ def Analysis():
     df['Predicted Price'] = df['Coin ID'].map({k: v['Predicted_Price'].iloc[-1] for k, v in crypto_analysis_dict.items()})
     df["Contract Address"] = df.apply(lambda row: get_contract_address(row["Coin ID"], row["Symbol"]), axis=1)
     df["Liquidity"] = df.apply(lambda row: get_liquidity(row["Contract Address"], row["Coin ID"]), axis=1)
+    
+    reddit_data = df["Coin Name"].apply(get_reddit_sentiment_with_pagination)
+    df["Reddit Sentiment"] = reddit_data.apply(lambda x: x["Avg Sentiment"])
+    df["Reddit Mentions"] = reddit_data.apply(lambda x: x["Post Volume"])
+    df["Avg Reddit Upvotes"] = reddit_data.apply(lambda x: x["Avg Upvotes"])
+    df["Avg Reddit Comments"] = reddit_data.apply(lambda x: x["Avg Comments"])
+    df["Sentiment Trend"] = reddit_data.apply(lambda x: x["Sentiment Trend"])
+    df["Positive Mentions"] = reddit_data.apply(lambda x: x["Positive Mentions"])
+    df["Neutral Mentions"] = reddit_data.apply(lambda x: x["Neutral Mentions"])
+    df["Negative Mentions"] = reddit_data.apply(lambda x: x["Negative Mentions"])
     
     df["Price on Puchase Date"]=df['Coin ID'].map({k: v['Price on Puchase Date'].iloc[-1] for k, v in crypto_analysis_dict.items()})
     
