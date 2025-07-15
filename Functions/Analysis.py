@@ -4,13 +4,8 @@ import ta  # Technical Analysis Library
 import requests
 import os
 import time
-import tweepy
-import praw
-from textblob import TextBlob
-from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from datetime import datetime
 import requests
-from concurrent.futures import ThreadPoolExecutor, as_completed
 import random
 from cachetools import TTLCache
 from Functions.Fetch_Data import get_specific_coin_data
@@ -34,16 +29,6 @@ TWITTER_API_SECRET = os.getenv("TWITTER_API_SECRET")
 TWITTER_ACCESS_TOKEN = os.getenv("TWITTER_ACCESS_TOKEN")
 TWITTER_ACCESS_SECRET = os.getenv("TWITTER_ACCESS_SECRET")
 TWITTER_BEARER_TOKEN = os.getenv("TWITTER_BEARER_TOKEN")
-
-# Reddit API credentials
-reddit = praw.Reddit(
-    client_id = "XQaZSF7aFd169cXHuQs4uA",
-    client_secret = "NCF7iHpFDgkSpwYOESMVRlcrHRx3_Q",
-    user_agent = "meme-coin-sentiment"
-)
-
-# Initialize Twitter Client
-twitter_client = tweepy.Client(bearer_token=TWITTER_BEARER_TOKEN)
 
 # Cache responses to avoid repeated API calls
 cache = TTLCache(maxsize=500, ttl=900)  # Store 100 results for 5 minutes
@@ -174,73 +159,6 @@ def get_liquidity(contract_address, coin_id):
     if not contract_address or contract_address == "Native Coin (No Contract)":
         return get_native_coin_liquidity(coin_id)  # Use CoinGecko for native coins
     return get_dex_liquidity(contract_address)  # Use DexScreener for tokens
-
-# Function to get sentiment score & engagement metrics
-def get_reddit_sentiment_with_pagination(query, total_posts=500, batch_size=100):
-    sia = SentimentIntensityAnalyzer()
-    posts = []
-    after = None
-    fetched_posts = 0
-
-    while fetched_posts < total_posts:
-        # Make a request with the "after" parameter for pagination
-        search_results = reddit.subreddit("cryptocurrency+CryptoMarkets").search(query, limit=batch_size, params={'after': after})
-        batch_posts = list(search_results)
-
-        if not batch_posts:
-            break
-
-        posts.extend(batch_posts)
-        fetched_posts += len(batch_posts)
-        after = batch_posts[-1].id   # Update the "after" parameter for the next batch
-
-        if len(batch_posts) < batch_size:
-            break  # If we don't have enough posts for the next batch, stop fetching
-
-    # Perform sentiment analysis on the collected posts
-    sentiment_score = 0
-    count = 0
-    total_upvotes = 0
-    total_comments = 0
-    post_volumes = 0
-    sentiment_trends = []
-    positive_mentions = 0
-    neutral_mentions = 0
-    negative_mentions = 0
-
-    for post in posts:
-        sentiment = sia.polarity_scores(post.title)
-        sentiment_score += sentiment['compound']
-        sentiment_trends.append(sentiment['compound'])  # Track sentiment per post
-
-        total_upvotes += post.score
-        total_comments += post.num_comments
-        post_volumes += 1
-        count += 1
-
-        # Track sentiment breakdown
-        if sentiment['compound'] >= 0.05:
-            positive_mentions += 1
-        elif sentiment['compound'] <= -0.05:
-            negative_mentions += 1
-        else:
-            neutral_mentions += 1
-
-    avg_sentiment = sentiment_score / count if count > 0 else 0
-    avg_upvotes = total_upvotes / count if count > 0 else 0
-    avg_comments = total_comments / count if count > 0 else 0
-    sentiment_trend = np.mean(sentiment_trends) if sentiment_trends else 0
-
-    return {
-        "Avg Sentiment": avg_sentiment,
-        "Post Volume": post_volumes,
-        "Avg Upvotes": avg_upvotes,
-        "Avg Comments": avg_comments,
-        "Sentiment Trend": sentiment_trend,
-        "Positive Mentions": positive_mentions,
-        "Neutral Mentions": neutral_mentions,
-        "Negative Mentions": negative_mentions
-    }
 
 # Get Price on the Purchase Date from CoinGecko
 def get_crypto_price_on_purchase_date(symbol: str, date_str: str) -> float:
@@ -378,16 +296,6 @@ def Analysis():
     df["Contract Address"] = df.apply(lambda row: get_contract_address(row["Coin ID"], row["Symbol"]), axis=1)
     df["Liquidity"] = df.apply(lambda row: get_liquidity(row["Contract Address"], row["Coin ID"]), axis=1)
     
-    reddit_data = df["Coin Name"].apply(get_reddit_sentiment_with_pagination)
-    df["Reddit Sentiment"] = reddit_data.apply(lambda x: x["Avg Sentiment"])
-    df["Reddit Mentions"] = reddit_data.apply(lambda x: x["Post Volume"])
-    df["Avg Reddit Upvotes"] = reddit_data.apply(lambda x: x["Avg Upvotes"])
-    df["Avg Reddit Comments"] = reddit_data.apply(lambda x: x["Avg Comments"])
-    df["Sentiment Trend"] = reddit_data.apply(lambda x: x["Sentiment Trend"])
-    df["Positive Mentions"] = reddit_data.apply(lambda x: x["Positive Mentions"])
-    df["Neutral Mentions"] = reddit_data.apply(lambda x: x["Neutral Mentions"])
-    df["Negative Mentions"] = reddit_data.apply(lambda x: x["Negative Mentions"])
-    
     df["Price on Puchase Date"]=df['Coin ID'].map({k: v['Price on Puchase Date'].iloc[-1] for k, v in crypto_analysis_dict.items()})
     
     # --------- Price Change Percentage Fix ---------
@@ -415,3 +323,4 @@ def Analysis():
     df = df.replace({np.nan: None})  # <-- CLEANING
     print("✅ All Analysis Completed Successfully.")
     return df
+

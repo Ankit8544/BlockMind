@@ -219,6 +219,29 @@ def Crypto_News_Data():
         send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error retrieving NewsAPI data from MongoDB: {e}")
         return {}
 
+# Get Reddit Sentiment Data from MongoDB
+def Reddit_Sentiment_Data():
+    try:
+        if client:
+            RedditDB = client["CryptoCoins"]
+            RedditCollection = RedditDB["Reddit_Sentiment_Data"]
+
+            if RedditCollection is not None:
+                RedditData = []
+                for doc in RedditCollection.find():
+                    doc['_id'] = str(doc['_id'])  # Convert ObjectId to string
+                    RedditData.append(doc)
+                return RedditData
+            else:
+                send_status_message(Status_TELEGRAM_CHAT_ID, "Reddit Collection is None. Cannot retrieve data.")
+                return {}
+        else:
+            send_status_message(Status_TELEGRAM_CHAT_ID, "MongoDB client is None. Cannot access Reddit data collection.")
+            return {}
+    except Exception as e:
+        send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error retrieving Reddit data from MongoDB: {e}")
+        return {}
+
 
 # -------------------------- Processing Data Before inserting to MongoDB -------------------------- #
 
@@ -344,6 +367,28 @@ def refresh_crypto_news_data(df):
 
     except Exception as e:
         send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error while uploading News data to MongoDB: {e}")
+
+# Insert the latest Reddit Sentiment Data
+def refresh_reddit_sentiment_data(df):
+    try:
+        if client:
+            RedditDB = client["CryptoCoins"]
+            RedditCollection = RedditDB["Reddit_Sentiment_Data"]
+
+            # Replace NaN with None
+            df = df.replace({np.nan: None})
+            records = df.to_dict(orient='records')
+
+            if RedditCollection.count_documents({}) > 0:
+                print(Status_TELEGRAM_CHAT_ID, "🗑️ Old Reddit Data found in 'Reddit_Sentiment_Data' Collection. Deleting it.")
+                RedditCollection.delete_many({})
+            
+            print(Status_TELEGRAM_CHAT_ID, "📤 Inserting new Reddit sentiment data into 'Reddit_Sentiment_Data' collection.")
+            RedditCollection.insert_many(records)
+            print(Status_TELEGRAM_CHAT_ID, "✅ MongoDB 'Reddit_Sentiment_Data' collection uploaded successfully.")
+
+    except Exception as e:
+        send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error while uploading Reddit data to MongoDB: {e}")
 
 # Function to validate crypto symbol and name
 def is_valid_crypto_symbol(symbol, coin_name=None):
