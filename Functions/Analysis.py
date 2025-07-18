@@ -14,7 +14,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import random
 from cachetools import TTLCache
 from Functions.Fetch_Data import get_specific_coin_data
-from Functions.MongoDB import get_coin_ids, UserPortfolio_Data
+from Functions.MongoDB import get_coin_ids, UserPortfolio_Data, refresh_reddit_post_data
 from Functions.BlockMindsStatusBot import send_status_message
 import pytz
 from Functions.MongoDB import Yearly_MarketChartData_Data
@@ -176,6 +176,66 @@ def get_liquidity(contract_address, coin_id):
         return get_native_coin_liquidity(coin_id)  # Use CoinGecko for native coins
     return get_dex_liquidity(contract_address)  # Use DexScreener for tokens
 
+def prepare_reddit_post_df(posts, query):
+    sia = SentimentIntensityAnalyzer()
+    records = []
+
+    # Get timestamps for CoinGecko
+    timestamps = [datetime.utcfromtimestamp(p.created_utc) for p in posts]
+    if not timestamps:
+        return pd.DataFrame()
+
+    start_ts = int(min(timestamps).timestamp())
+    end_ts = int(max(timestamps).timestamp()) + 3600 * 6
+
+    # Fetch CoinGecko Price Data
+    url = f"https://api.coingecko.com/api/v3/coins/{query.lower()}/market_chart/range"
+    params = {"vs_currency": "usd", "from": start_ts, "to": end_ts}
+    try:
+        resp = requests.get(url, params=params, timeout=15)
+        data = resp.json()
+        price_df = pd.DataFrame(data.get("prices", []), columns=["timestamp", "price"])
+        price_df["timestamp"] = price_df["timestamp"] // 1000
+    except:
+        price_df = pd.DataFrame()
+
+    # Loop through posts and collect data
+    for post in posts:
+        sentiment = sia.polarity_scores(post.title)
+        compound = sentiment['compound']
+
+        t_post = datetime.utcfromtimestamp(post.created_utc)
+        t_now = int(t_post.timestamp())
+        t_later = t_now + 3600 * 6
+
+        try:
+            price_now_df = price_df.iloc[(price_df["timestamp"] - t_now).abs().argsort()[:1]]
+            price_later_df = price_df.iloc[(price_df["timestamp"] - t_later).abs().argsort()[:1]]
+
+            price_now = price_now_df["price"].values[0] if not price_now_df.empty else None
+            price_later = price_later_df["price"].values[0] if not price_later_df.empty else None
+            pct_change = ((price_later - price_now) / price_now * 100) if price_now and price_later else None
+        except:
+            price_now = price_later = pct_change = None
+
+        records.append({
+            "coin": query.lower(),
+            "title": post.title,
+            "created_utc": t_post.isoformat(),
+            "permalink": f"https://www.reddit.com{post.permalink}",
+            "author": str(post.author),
+            "subreddit": str(post.subreddit),
+            "url": post.url,
+            "upvotes": post.score,
+            "comments": post.num_comments,
+            "sentiment_score": compound,
+            "price_at_post": price_now,
+            "price_6hr_after": price_later,
+            "price_change_pct": pct_change
+        })
+
+    return pd.DataFrame(records)
+
 # Function to get sentiment score & engagement metrics
 def get_reddit_sentiment_with_pagination(query, total_posts=500, batch_size=100):
     sia = SentimentIntensityAnalyzer()
@@ -183,9 +243,27 @@ def get_reddit_sentiment_with_pagination(query, total_posts=500, batch_size=100)
     after = None
     fetched_posts = 0
 
+    # For most upvoted post (full metadata)
+    top_post_data = {
+        "title": "",
+        "score": 0,
+        "num_comments": 0,
+        "created_utc": "",
+        "permalink": "",
+        "author": "",
+        "subreddit": "",
+        "url": "",
+        "selftext": "",
+        "sentiment_score": 0,
+        "image_url": ""
+    }
+
+    created_times = []
+
     while fetched_posts < total_posts:
-        # Make a request with the "after" parameter for pagination
-        search_results = reddit.subreddit("cryptocurrency+CryptoMarkets").search(query, limit=batch_size, params={'after': after})
+        search_results = reddit.subreddit("cryptocurrency+CryptoMarkets").search(
+            query, limit=batch_size, params={'after': after}
+        )
         batch_posts = list(search_results)
 
         if not batch_posts:
@@ -196,11 +274,10 @@ def get_reddit_sentiment_with_pagination(query, total_posts=500, batch_size=100)
         after = batch_posts[-1].id
 
         if len(batch_posts) < batch_size:
-            break  # If we don't have enough posts for the next batch, stop fetching
+            break
 
-    # Perform sentiment analysis on the collected posts
+    # Aggregation variables
     sentiment_score = 0
-    count = 0
     total_upvotes = 0
     total_comments = 0
     post_volumes = 0
@@ -211,28 +288,84 @@ def get_reddit_sentiment_with_pagination(query, total_posts=500, batch_size=100)
 
     for post in posts:
         sentiment = sia.polarity_scores(post.title)
-        sentiment_score += sentiment['compound']
-        sentiment_trends.append(sentiment['compound'])  # Track sentiment per post
+        compound = sentiment['compound']
+        sentiment_score += compound
+        sentiment_trends.append(compound)
 
-        total_upvotes += post.score
-        total_comments += post.num_comments
+        upvotes = post.score
+        comments = post.num_comments
+        total_upvotes += upvotes
+        total_comments += comments
         post_volumes += 1
-        count += 1
 
-        # Track sentiment breakdown
-        if sentiment['compound'] >= 0.05:
+        # Save the most upvoted post with full metadata
+        if upvotes > top_post_data["score"]:
+            # Try to extract image URL
+            image_url = ""
+            if post.url.lower().endswith((".jpg", ".jpeg", ".png", ".gif")):
+                image_url = post.url
+            elif hasattr(post, "preview"):
+                try:
+                    image_url = post.preview["images"][0]["source"]["url"].replace("&amp;", "&")
+                except:
+                    image_url = ""
+            elif hasattr(post, "thumbnail") and post.thumbnail.startswith("http"):
+                image_url = post.thumbnail
+
+            top_post_data = {
+                "title": post.title,
+                "score": upvotes,
+                "num_comments": comments,
+                "created_utc": datetime.utcfromtimestamp(post.created_utc).strftime("%Y-%m-%d %H:%M:%S"),
+                "permalink": f"https://www.reddit.com{post.permalink}",
+                "author": str(post.author),
+                "subreddit": str(post.subreddit),
+                "url": post.url,
+                "selftext": post.selftext[:500] if hasattr(post, "selftext") else "",
+                "sentiment_score": compound,
+                "image_url": image_url
+            }
+
+        # Sentiment breakdown
+        if compound >= 0.05:
             positive_mentions += 1
-        elif sentiment['compound'] <= -0.05:
+        elif compound <= -0.05:
             negative_mentions += 1
         else:
             neutral_mentions += 1
 
-    avg_sentiment = sentiment_score / count if count > 0 else 0
-    avg_upvotes = total_upvotes / count if count > 0 else 0
-    avg_comments = total_comments / count if count > 0 else 0
-    sentiment_trend = np.mean(sentiment_trends) if sentiment_trends else 0
+        # Mention date tracking
+        if hasattr(post, "created_utc"):
+            created_times.append(datetime.utcfromtimestamp(post.created_utc))
 
+    # Basic metrics
+    count = max(post_volumes, 1)
+    avg_sentiment = sentiment_score / count
+    avg_upvotes = total_upvotes / count
+    avg_comments = total_comments / count
+    sentiment_trend = np.mean(sentiment_trends) if sentiment_trends else 0
+    engagement_rate = (total_upvotes + total_comments) / count
+    positive_pct = positive_mentions / count
+    negative_pct = negative_mentions / count
+
+    # Mentions per day
+    if created_times:
+        days_range = max((max(created_times) - min(created_times)).days, 1)
+        mentions_per_day = post_volumes / days_range
+    else:
+        mentions_per_day = 0
+
+    # Trending logic
+    trending = "Yes" if sentiment_trend > 0.2 or engagement_rate > 10 else "No"
+    
+    # Prepare DataFrame from posts
+    df = prepare_reddit_post_df(posts, query)
+    if not df.empty:
+        refresh_reddit_post_data(df)
+
+    # Return the aggregated metrics
     return {
+        # Base metrics
         "Avg Sentiment": avg_sentiment,
         "Post Volume": post_volumes,
         "Avg Upvotes": avg_upvotes,
@@ -240,7 +373,27 @@ def get_reddit_sentiment_with_pagination(query, total_posts=500, batch_size=100)
         "Sentiment Trend": sentiment_trend,
         "Positive Mentions": positive_mentions,
         "Neutral Mentions": neutral_mentions,
-        "Negative Mentions": negative_mentions
+        "Negative Mentions": negative_mentions,
+
+        # Engagement & trend insights
+        "Engagement Rate": engagement_rate,
+        "Positive %": positive_pct,
+        "Negative %": negative_pct,
+        "Mentions per Day": mentions_per_day,
+        "Trending": trending,
+
+        # Top post metadata
+        "Top Post Title": top_post_data["title"],
+        "Top Post Upvotes": top_post_data["score"],
+        "Top Post Comments": top_post_data["num_comments"],
+        "Top Post Date": top_post_data["created_utc"],
+        "Top Post Link": top_post_data["permalink"],
+        "Top Post Author": top_post_data["author"],
+        "Top Post Subreddit": top_post_data["subreddit"],
+        "Top Post URL": top_post_data["url"],
+        "Top Post Body": top_post_data["selftext"],
+        "Top Post Sentiment": top_post_data["sentiment_score"],
+        "Top Post Image URL": top_post_data["image_url"]
     }
 
 # Get Price on the Purchase Date from CoinGecko
@@ -381,6 +534,24 @@ def Analysis():
     df["Positive Mentions"] = reddit_data.apply(lambda x: x["Positive Mentions"])
     df["Neutral Mentions"] = reddit_data.apply(lambda x: x["Neutral Mentions"])
     df["Negative Mentions"] = reddit_data.apply(lambda x: x["Negative Mentions"])
+    df["Engagement Rate"] = reddit_data.apply(lambda x: x["Engagement Rate"])
+    df["Positive %"] = reddit_data.apply(lambda x: x["Positive %"])
+    df["Negative %"] = reddit_data.apply(lambda x: x["Negative %"])
+    df["Top Post Title"] = reddit_data.apply(lambda x: x["Top Post Title"])
+    df["Top Post Upvotes"] = reddit_data.apply(lambda x: x["Top Post Upvotes"])
+    df["Mentions per Day"] = reddit_data.apply(lambda x: x["Mentions per Day"])
+    df["Trending"] = reddit_data.apply(lambda x: x["Trending"])    
+    df["Top Post Title"] = reddit_data.apply(lambda x: x["Top Post Title"])
+    df["Top Post Upvotes"] = reddit_data.apply(lambda x: x["Top Post Upvotes"])
+    df["Top Post Comments"] = reddit_data.apply(lambda x: x["Top Post Comments"])
+    df["Top Post Date"] = reddit_data.apply(lambda x: x["Top Post Date"])
+    df["Top Post Link"] = reddit_data.apply(lambda x: x["Top Post Link"])
+    df["Top Post Author"] = reddit_data.apply(lambda x: x["Top Post Author"])
+    df["Top Post Subreddit"] = reddit_data.apply(lambda x: x["Top Post Subreddit"])
+    df["Top Post URL"] = reddit_data.apply(lambda x: x["Top Post URL"])
+    df["Top Post Body"] = reddit_data.apply(lambda x: x["Top Post Body"])
+    df["Top Post Sentiment"] = reddit_data.apply(lambda x: x["Top Post Sentiment"])
+    df["Top Post Image URL"] = reddit_data.apply(lambda x: x["Top Post Image URL"])
     
     df["Price on Puchase Date"]=df['Coin ID'].map({k: v['Price on Puchase Date'].iloc[-1] for k, v in crypto_analysis_dict.items()})
     

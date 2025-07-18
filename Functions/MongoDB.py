@@ -196,29 +196,6 @@ def CryptoCoins_Data():
         send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error retrieving user portfolio collection: {e}")
         return {}
 
-# Get NewsAPI Crypto Data Collection in JSON format
-def Crypto_News_Data():
-    try:
-        if client:
-            NewsDB = client["CryptoCoins"]
-            NewsCollection = NewsDB["Crypto_News_Data"]
-
-            if NewsCollection is not None:
-                NewsData = []
-                for doc in NewsCollection.find():
-                    doc['_id'] = str(doc['_id'])  # Convert ObjectId to string
-                    NewsData.append(doc)
-                return NewsData
-            else:
-                send_status_message(Status_TELEGRAM_CHAT_ID, "NewsAPI Collection is None. Cannot retrieve news data.")
-                return {}
-        else:
-            send_status_message(Status_TELEGRAM_CHAT_ID, "MongoDB client is None. Cannot access news data collection.")
-            return {}
-    except Exception as e:
-        send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error retrieving NewsAPI data from MongoDB: {e}")
-        return {}
-
 
 # -------------------------- Processing Data Before inserting to MongoDB -------------------------- #
 
@@ -322,28 +299,6 @@ def refersh_analyzed_data(df):
 
     except Exception as e:
         send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error while uploading to MongoDB: {e}")
-
-# Insert the latest Crypto News Data
-def refresh_crypto_news_data(df):
-    try:
-        if client:
-            NewsDB = client["CryptoCoins"]
-            NewsCollection = NewsDB["Crypto_News_Data"]
-
-            # Replace NaN with None
-            df = df.replace({np.nan: None})
-            records = df.to_dict(orient='records')
-
-            if NewsCollection.count_documents({}) > 0:
-                print(Status_TELEGRAM_CHAT_ID, "🗑️ Old News Data found in 'NewsAPI_Crypto_Data' Collection. Deleting it.")
-                NewsCollection.delete_many({})
-            
-            print(Status_TELEGRAM_CHAT_ID, "📤 Inserting new news data into 'NewsAPI_Crypto_Data' collection.")
-            NewsCollection.insert_many(records)
-            print(Status_TELEGRAM_CHAT_ID, "✅ MongoDB 'NewsAPI_Crypto_Data' collection uploaded successfully.")
-
-    except Exception as e:
-        send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error while uploading News data to MongoDB: {e}")
 
 # Function to validate crypto symbol and name
 def is_valid_crypto_symbol(symbol, coin_name=None):
@@ -691,3 +646,99 @@ def Yearly_MarketChartData_Data():
         return []
 
 
+# --- Reddit Post Data ---
+
+# Insert Reddit Post Data into MongoDB
+def refresh_reddit_post_data(df):
+    try:
+        if client:
+            RedditDB = client["CryptoCoins"]
+            RedditCollection = RedditDB["Reddit_Post_Data"]
+
+            # Replace NaN with None
+            df = df.replace({np.nan: None})
+            records = df.to_dict(orient='records')
+            
+            # Safely delete only for this coin
+            coin_name = df["coin"].iloc[0].lower()
+            if RedditCollection.count_documents({"coin": coin_name}) > 0:
+                print(Status_TELEGRAM_CHAT_ID, f"🗑️ Old Reddit data found for coin: {coin_name}. Deleting it.")
+                RedditCollection.delete_many({"coin": coin_name})
+
+            print(Status_TELEGRAM_CHAT_ID, f"📤 Inserting new Reddit post data for {coin_name}.")
+            RedditCollection.insert_many(records)
+            print(Status_TELEGRAM_CHAT_ID, f"✅ MongoDB Reddit post data for {coin_name} uploaded successfully.")
+
+    except Exception as e:
+        send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error while uploading Reddit data to MongoDB: {e}")
+
+# Get Reddit Post Data Collection in JSON format
+def Reddit_Post_Data():
+    try:
+        if client:
+            RedditDB = client["CryptoCoins"]
+            RedditCollection = RedditDB["Reddit_Post_Data"]
+
+            if RedditCollection is not None:
+                RedditData = []
+                for doc in RedditCollection.find():
+                    doc['_id'] = str(doc['_id'])  # Convert ObjectId to string
+                    RedditData.append(doc)
+                return RedditData
+            else:
+                send_status_message(Status_TELEGRAM_CHAT_ID, "Reddit Post Collection is None. Cannot retrieve data.")
+                return {}
+        else:
+            send_status_message(Status_TELEGRAM_CHAT_ID, "MongoDB client is None. Cannot access Reddit post collection.")
+            return {}
+    except Exception as e:
+        send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error retrieving Reddit post data from MongoDB: {e}")
+        return {}
+
+
+# --- News Data ---
+
+# Insert the latest Crypto News Data
+def refresh_crypto_news_data(df):
+    try:
+        if client:
+            NewsDB = client["CryptoCoins"]
+            NewsCollection = NewsDB["Crypto_News_Data"]
+
+            # Replace NaN with None
+            df = df.replace({np.nan: None})
+            records = df.to_dict(orient='records')
+
+            if NewsCollection.count_documents({}) > 0:
+                print(Status_TELEGRAM_CHAT_ID, "🗑️ Old News Data found in 'NewsAPI_Crypto_Data' Collection. Deleting it.")
+                NewsCollection.delete_many({})
+            
+            print(Status_TELEGRAM_CHAT_ID, "📤 Inserting new news data into 'NewsAPI_Crypto_Data' collection.")
+            NewsCollection.insert_many(records)
+            print(Status_TELEGRAM_CHAT_ID, "✅ MongoDB 'NewsAPI_Crypto_Data' collection uploaded successfully.")
+
+    except Exception as e:
+        send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error while uploading News data to MongoDB: {e}")
+
+# Get NewsAPI Crypto Data Collection in JSON format
+def Crypto_News_Data():
+    try:
+        if client:
+            NewsDB = client["CryptoCoins"]
+            NewsCollection = NewsDB["Crypto_News_Data"]
+
+            if NewsCollection is not None:
+                NewsData = []
+                for doc in NewsCollection.find():
+                    doc['_id'] = str(doc['_id'])  # Convert ObjectId to string
+                    NewsData.append(doc)
+                return NewsData
+            else:
+                send_status_message(Status_TELEGRAM_CHAT_ID, "NewsAPI Collection is None. Cannot retrieve news data.")
+                return {}
+        else:
+            send_status_message(Status_TELEGRAM_CHAT_ID, "MongoDB client is None. Cannot access news data collection.")
+            return {}
+    except Exception as e:
+        send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error retrieving NewsAPI data from MongoDB: {e}")
+        return {}
