@@ -662,12 +662,9 @@ def refresh_reddit_post_data(df):
             # Safely delete only for this coin
             coin_name = df["coin"].iloc[0].lower()
             if RedditCollection.count_documents({"coin": coin_name}) > 0:
-                print(Status_TELEGRAM_CHAT_ID, f"🗑️ Old Reddit data found for coin: {coin_name}. Deleting it.")
                 RedditCollection.delete_many({"coin": coin_name})
 
-            print(Status_TELEGRAM_CHAT_ID, f"📤 Inserting new Reddit post data for {coin_name}.")
             RedditCollection.insert_many(records)
-            print(Status_TELEGRAM_CHAT_ID, f"✅ MongoDB Reddit post data for {coin_name} uploaded successfully.")
 
     except Exception as e:
         send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error while uploading Reddit data to MongoDB: {e}")
@@ -710,12 +707,9 @@ def refresh_crypto_news_data(df):
             records = df.to_dict(orient='records')
 
             if NewsCollection.count_documents({}) > 0:
-                print(Status_TELEGRAM_CHAT_ID, "🗑️ Old News Data found in 'NewsAPI_Crypto_Data' Collection. Deleting it.")
                 NewsCollection.delete_many({})
-            
-            print(Status_TELEGRAM_CHAT_ID, "📤 Inserting new news data into 'NewsAPI_Crypto_Data' collection.")
+
             NewsCollection.insert_many(records)
-            print(Status_TELEGRAM_CHAT_ID, "✅ MongoDB 'NewsAPI_Crypto_Data' collection uploaded successfully.")
 
     except Exception as e:
         send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error while uploading News data to MongoDB: {e}")

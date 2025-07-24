@@ -454,78 +454,16 @@ def Analysis():
         
         prices['Price on Puchase Date'] = get_crypto_price_on_purchase_date(symbol=symbol, date_str=purchase_date)
 
-        # Calculate daily returns
-        prices['returns'] = prices['price'].pct_change()
-
-        # Compute Sharpe Ratio
-        risk_free_rate = 0.01
-        mean_return = prices['returns'].mean()
-        std_dev = prices['returns'].std()
-        sharpe_ratio = (mean_return - risk_free_rate) / std_dev if std_dev != 0 else float('nan')
-
-        # --------- Technical Analysis Indicators ---------
-        # Moving Averages
-        prices['SMA_50'] = prices['price'].rolling(window=50, min_periods=1).mean()
-        prices['EMA_20'] = prices['price'].ewm(span=20, adjust=False).mean()
-
-        # RSI
-        rsi_indicator = ta.momentum.RSIIndicator(prices['price'], window=14, fillna=True)
-        prices['RSI'] = rsi_indicator.rsi()
-
-        # MACD
-        macd = ta.trend.MACD(prices['price'], fillna=True)
-        prices['MACD'] = macd.macd()
-        prices['MACD_Signal'] = macd.macd_signal()
-
-        # Bollinger Bands
-        bb = ta.volatility.BollingerBands(prices['price'], window=20, fillna=True)
-        prices['BB_High'] = bb.bollinger_hband()
-        prices['BB_Low'] = bb.bollinger_lband()
-
-        # Buy/Sell Signals based on RSI (Fixing None Values)
-        prices['Buy_Signal'] = np.where(prices['RSI'] < 30, prices['price'], np.nan)
-        prices['Sell_Signal'] = np.where(prices['RSI'] > 70, prices['price'], np.nan)
-
-        # Fill missing Buy/Sell signals with NaN instead of None
-        prices['Buy_Signal'] = prices['Buy_Signal'].fillna(np.nan)
-        prices['Sell_Signal'] = prices['Sell_Signal'].fillna(np.nan)
-
-        # Trend Projections
-        prices['SMA_Projection'] = (prices['SMA_50'] + prices['price']) / 2
-        prices['EMA_Projection'] = (prices['EMA_20'] + prices['price']) / 2
-        rsi_adjustment_factor = (50 - prices['RSI']) / 100
-        prices['RSI_Projection'] = prices['price'] * (1 + rsi_adjustment_factor)
-        macd_adjustment_factor = abs(prices['MACD'] - prices['MACD_Signal']) / 10
-        prices['MACD_Projection'] = prices['price'] * (1 + macd_adjustment_factor)
-        prices['BB_Mid'] = (prices['BB_High'] + prices['BB_Low']) / 2
-        prices['BB_Projection'] = (prices['BB_Mid'] + prices['price']) / 2
-
-        # Final Predicted Price Calculation
-        prices['Predicted_Price'] = prices[['SMA_Projection', 'EMA_Projection', 'RSI_Projection', 'MACD_Projection', 'BB_Projection']].mean(axis=1)
-        
         # Store data in dictionary
         crypto_analysis_dict[Crypto_Id] = prices
+        
+    reddit_data = df["Coin Name"].apply(get_reddit_sentiment_with_pagination)
 
     # --------- Update Main DataFrame ---------
-    df['Sharpe Ratio'] = df['Coin ID'].map({
-        k: v['returns'].mean() / v['returns'].std() if v['returns'].std() != 0 else float('nan')
-        for k, v in crypto_analysis_dict.items()
-    })
-    
-    df['Simple Moving Average Over 50 Days'] = df['Coin ID'].map({k: v['SMA_50'].iloc[-1] for k, v in crypto_analysis_dict.items()})
-    df['Exponential Moving Average Over 20 Days'] = df['Coin ID'].map({k: v['EMA_20'].iloc[-1] for k, v in crypto_analysis_dict.items()})
-    df['Relative Strength Index'] = df['Coin ID'].map({k: v['RSI'].iloc[-1] for k, v in crypto_analysis_dict.items()})
-    df['Moving Average Convergence Divergence'] = df['Coin ID'].map({k: v['MACD'].iloc[-1] for k, v in crypto_analysis_dict.items()})
-    df['Moving Average Convergence Divergence Signal'] = df['Coin ID'].map({k: v['MACD_Signal'].iloc[-1] for k, v in crypto_analysis_dict.items()})
-    df['Bollinger Bands High'] = df['Coin ID'].map({k: v['BB_High'].iloc[-1] for k, v in crypto_analysis_dict.items()})
-    df['Bollinger Bands Low'] = df['Coin ID'].map({k: v['BB_Low'].iloc[-1] for k, v in crypto_analysis_dict.items()})
-    df['Buy Signal'] = df['Coin ID'].map({k: v['Buy_Signal'].dropna().iloc[-1] if not v['Buy_Signal'].dropna().empty else np.nan for k, v in crypto_analysis_dict.items()})
-    df['Sell Signal'] = df['Coin ID'].map({k: v['Sell_Signal'].dropna().iloc[-1] if not v['Sell_Signal'].dropna().empty else np.nan for k, v in crypto_analysis_dict.items()})
-    df['Predicted Price'] = df['Coin ID'].map({k: v['Predicted_Price'].iloc[-1] for k, v in crypto_analysis_dict.items()})
     df["Contract Address"] = df.apply(lambda row: get_contract_address(row["Coin ID"], row["Symbol"]), axis=1)
     df["Liquidity"] = df.apply(lambda row: get_liquidity(row["Contract Address"], row["Coin ID"]), axis=1)
     
-    reddit_data = df["Coin Name"].apply(get_reddit_sentiment_with_pagination)
+    # Fetch Reddit Sentiment Data
     df["Reddit Sentiment"] = reddit_data.apply(lambda x: x["Avg Sentiment"])
     df["Reddit Mentions"] = reddit_data.apply(lambda x: x["Post Volume"])
     df["Avg Reddit Upvotes"] = reddit_data.apply(lambda x: x["Avg Upvotes"])
@@ -554,28 +492,6 @@ def Analysis():
     df["Top Post Image URL"] = reddit_data.apply(lambda x: x["Top Post Image URL"])
     
     df["Price on Puchase Date"]=df['Coin ID'].map({k: v['Price on Puchase Date'].iloc[-1] for k, v in crypto_analysis_dict.items()})
-    
-    # --------- Price Change Percentage Fix ---------
-    df['7d Price Change Percentage (%)'] = df['Coin ID'].map(
-        lambda coin_id: ((crypto_analysis_dict[coin_id]['price'].iloc[-1] - 
-                          crypto_analysis_dict[coin_id]['price'].iloc[-8]) / 
-                          crypto_analysis_dict[coin_id]['price'].iloc[-8]) * 100
-        if coin_id in crypto_analysis_dict and len(crypto_analysis_dict[coin_id]) > 7 else np.nan
-    )
-
-    df['30d Price Change Percentage (%)'] = df['Coin ID'].map(
-        lambda coin_id: ((crypto_analysis_dict[coin_id]['price'].iloc[-1] - 
-                        crypto_analysis_dict[coin_id]['price'].iloc[-31]) / 
-                        crypto_analysis_dict[coin_id]['price'].iloc[-31]) * 100
-        if coin_id in crypto_analysis_dict and len(crypto_analysis_dict[coin_id]) > 30 else np.nan
-    )
-
-    df['1y Price Change Percentage (%)'] = df['Coin ID'].map(
-        lambda coin_id: ((crypto_analysis_dict[coin_id]['price'].iloc[-1] - 
-                        crypto_analysis_dict[coin_id]['price'].iloc[0]) / 
-                        crypto_analysis_dict[coin_id]['price'].iloc[0]) * 100
-        if coin_id in crypto_analysis_dict and len(crypto_analysis_dict[coin_id]) > 364 else np.nan
-    )
 
     df = df.replace({np.nan: None})  # <-- CLEANING
     print("✅ All Analysis Completed Successfully.")

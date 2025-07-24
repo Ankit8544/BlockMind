@@ -79,13 +79,11 @@ def get_newsapi_articles(coin_name, coin, from_date, to_date, min_articles, max_
                 data = res.json()
 
                 if res.status_code == 429 or data.get("code") == "rateLimited":
-                    print(f"🔁 NewsAPI rate limit hit for key. Retrying...")
                     time.sleep(delay * (2 ** attempt))  # exponential backoff
                     attempt += 1
                     continue
 
                 if res.status_code != 200:
-                    print(f"⚠️ NewsAPI error for {coin}: {res.status_code}")
                     break
 
                 for a in data.get("articles", []):
@@ -207,19 +205,15 @@ def get_all_news_with_analysis(min_articles=100):
         if len(search_term) < 4 or any(char.isdigit() for char in search_term):
             search_term += " coin"
 
-        print(f"🔍 Fetching news for: {coin} → '{search_term}'")
-
         articles = []
         try:
             articles = get_newsapi_articles(coin_name=coin, coin = search_term, from_date = yesterday, to_date =today, min_articles= min_articles)
-            print(f"✅ NewsAPI returned {len(articles)} articles for {coin}")
         except Exception as e:
             print(f"❌ NewsAPI failed for {coin}: {e}")
 
         if len(articles) < min_articles:
             try:
                 remaining = min_articles - len(articles)
-                print(f"⚠️ Fetching {remaining} articles from NewsData.io")
                 articles += get_newsdata_articles(coin_name=coin, coin=search_term, min_needed=remaining)
             except Exception as e:
                 print(f"❌ NewsData.io failed: {e}")
@@ -227,7 +221,6 @@ def get_all_news_with_analysis(min_articles=100):
         if len(articles) < min_articles:
             try:
                 remaining = min_articles - len(articles)
-                print(f"⚠️ Fetching {remaining} articles from MediaStack")
                 articles += get_mediastack_articles(coin_name=coin,coin=search_term, min_needed=remaining)
             except Exception as e:
                 print(f"❌ MediaStack failed: {e}")
@@ -235,7 +228,6 @@ def get_all_news_with_analysis(min_articles=100):
         if len(articles) < min_articles:
             try:
                 remaining = min_articles - len(articles)
-                print(f"⚠️ Fetching {remaining} articles from ContextualWeb")
                 articles += get_contextual_articles(coin_name=coin, coin=search_term, min_needed=remaining)
             except Exception as e:
                 print(f"❌ ContextualWeb failed: {e}")
@@ -277,7 +269,6 @@ def get_all_news_with_analysis(min_articles=100):
         # === Use valid CoinGecko ID for price fetching ===
         cg_id = coin_map.get(coin)
         if not cg_id:
-            print(f"⚠️ Skipping CoinGecko price fetch for {coin} (no valid ID)")
             for a in valid_articles:
                 a["price_at_news"] = None
                 a["price_6hr_after"] = None
@@ -296,7 +287,6 @@ def get_all_news_with_analysis(min_articles=100):
             start_ts = base_start - delta
             end_ts = base_end + delta
 
-            print(f"📈 Try {attempt + 1}: Fetching CoinGecko prices for {cg_id}: {start_ts} to {end_ts}")
             url = f"https://api.coingecko.com/api/v3/coins/{cg_id}/market_chart/range"
             params = {"vs_currency": "usd", "from": start_ts, "to": end_ts}
 
@@ -308,14 +298,12 @@ def get_all_news_with_analysis(min_articles=100):
                     df["timestamp"] = df["timestamp"] // 1000
                     break
                 else:
-                    print(f"⚠️ No price data on attempt {attempt + 1}, sleeping 50s...")
                     time.sleep(50)
             except Exception as e:
                 print(f"❌ API error on attempt {attempt + 1}: {e}")
                 time.sleep(50)
 
         if df is None or df.empty:
-            print(f"⚠️ Skipping {coin}: No price data after 5 retries.")
             continue
 
         # === Assign price to each article ===
@@ -346,7 +334,6 @@ def get_all_news_with_analysis(min_articles=100):
                 article["price_change_pct"] = None
 
         all_results.extend(valid_articles)
-        print(f"✅ Total collected for {coin}: {len(valid_articles)}\n")
         time.sleep(1.2)  # Avoid hitting CoinGecko too fast
 
     return pd.DataFrame(all_results)
