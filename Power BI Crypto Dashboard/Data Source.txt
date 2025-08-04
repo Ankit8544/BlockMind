@@ -1,0 +1,123 @@
+User Portfolio Assets -
+let
+    Source = Json.Document(Web.Contents("https://cryptodata-pnzi.onrender.com/get-analyzed-data")),
+    #"User Portfolio" = Source[User Portfolio],
+    #"Converted to Table" = Table.FromList(#"User Portfolio", Splitter.SplitByNothing(), null, null, ExtraValues.Error),
+    #"Expanded Column1" = Table.ExpandRecordColumn(#"Converted to Table", "Column1", {"_id", "coin_name", "coin_symbol", "purchase_date", "telegram_username", "user_mail"}, {"Column1._id", "Column1.coin_name", "Column1.coin_symbol", "Column1.purchase_date", "Column1.telegram_username", "Column1.user_mail"}),
+    #"Removed Columns" = Table.RemoveColumns(#"Expanded Column1",{"Column1._id"}),
+    #"Renamed Columns" = Table.RenameColumns(#"Removed Columns",{{"Column1.coin_name", "Coin Name"}, {"Column1.coin_symbol", "Coin Symbol"}, {"Column1.purchase_date", "Purchase Date"}, {"Column1.telegram_username", "Telegram Username"}, {"Column1.user_mail", "User Mail"}})
+in
+    #"Renamed Columns"
+
+
+User Portfolio Based Crypto Data -
+let
+    Source = Json.Document(Web.Contents("https://cryptodata-pnzi.onrender.com/get-analyzed-data")),
+    #"User Portfolio Based Crypto Data1" = Source[User Portfolio Based Crypto Data],
+    #"Converted to Table" = Table.FromList(#"User Portfolio Based Crypto Data1", Splitter.SplitByNothing(), null, null, ExtraValues.Error),
+    #"Expanded Column1" = Table.ExpandRecordColumn(#"Converted to Table", "Column1", {"24h High Price", "24h Low Price", "24h Market Cap Change", "24h Market Cap Change Percentage (%)", "24h Price Change", "24h Price Change Percentage (%)", "All-Time High Change Percentage (%)", "All-Time High Date", "All-Time High Price", "All-Time Low Change Percentage (%)", "All-Time Low Date", "All-Time Low Price", "Avg Reddit Comments", "Avg Reddit Upvotes", "Bollinger Bands High", "Bollinger Bands Low", "Buy Signal", "Circulating Supply", "Coin ID", "Coin Name", "Contract Address", "Current Price", "Engagement Rate", "Exponential Moving Average Over 20 Days", "Fully Diluted Valuation", "Image URL", "Last Updated", "Liquidity", "Market Cap", "Market Cap Rank", "Max Supply", "Mentions per Day", "Moving Average Convergence Divergence", "Moving Average Convergence Divergence Signal", "Negative %", "Negative Mentions", "Neutral Mentions", "Positive %", "Positive Mentions", "Predicted Price", "Price on Puchase Date", "Reddit Mentions", "Reddit Sentiment", "Relative Strength Index", "Return on Investment", "Sell Signal", "Sentiment Trend", "Sharpe Ratio", "Simple Moving Average Over 50 Days", "Symbol", "Top Post Author", "Top Post Body", "Top Post Comments", "Top Post Date", "Top Post Image URL", "Top Post Link", "Top Post Sentiment", "Top Post Subreddit", "Top Post Title", "Top Post URL", "Top Post Upvotes", "Total Supply", "Total Volume", "Trending"}, {"24h High Price", "24h Low Price", "24h Market Cap Change", "24h Market Cap Change Percentage (%)", "24h Price Change", "24h Price Change Percentage (%)", "All-Time High Change Percentage (%)", "All-Time High Date", "All-Time High Price", "All-Time Low Change Percentage (%)", "All-Time Low Date", "All-Time Low Price", "Avg Reddit Comments", "Avg Reddit Upvotes", "Bollinger Bands High", "Bollinger Bands Low", "Buy Signal", "Circulating Supply", "Coin ID", "Coin Name", "Contract Address", "Current Price", "Engagement Rate", "Exponential Moving Average Over 20 Days", "Fully Diluted Valuation", "Image URL", "Last Updated", "Liquidity", "Market Cap", "Market Cap Rank", "Max Supply", "Mentions per Day", "Moving Average Convergence Divergence", "Moving Average Convergence Divergence Signal", "Negative %", "Negative Mentions", "Neutral Mentions", "Positive %", "Positive Mentions", "Predicted Price", "Price on Puchase Date", "Reddit Mentions", "Reddit Sentiment", "Relative Strength Index", "Return on Investment", "Sell Signal", "Sentiment Trend", "Sharpe Ratio", "Simple Moving Average Over 50 Days", "Symbol", "Top Post Author", "Top Post Body", "Top Post Comments", "Top Post Date", "Top Post Image URL", "Top Post Link", "Top Post Sentiment", "Top Post Subreddit", "Top Post Title", "Top Post URL", "Top Post Upvotes", "Total Supply", "Total Volume", "Trending"})
+in
+    #"Expanded Column1"
+
+
+Hourly Candlestick Data -
+let
+    Source = Json.Document(Web.Contents("https://cryptodata-pnzi.onrender.com/get-hourly-candlestick-data")),
+    #"Converted to Table" = Record.ToTable(Source),
+    #"Expanded Value" = Table.ExpandListColumn(#"Converted to Table", "Value"),
+    #"Expanded Value1" = Table.ExpandRecordColumn(#"Expanded Value", "Value", {"Timestamp", "Open", "High", "Low", "Close", "Coin_id"}, {"Value.Timestamp", "Value.Open", "Value.High", "Value.Low", "Value.Close", "Value.Coin_id"}),
+    #"Removed Columns" = Table.RemoveColumns(#"Expanded Value1",{"Name"}),
+    #"Renamed Columns" = Table.RenameColumns(#"Removed Columns",{{"Value.Timestamp", "Timestamp"}, {"Value.Open", "Open"}, {"Value.High", "High"}, {"Value.Low", "Low"}, {"Value.Close", "Close"}, {"Value.Coin_id", "Coin_id"}}),
+    #"Added Custom" = Table.AddColumn(#"Renamed Columns", "Coin_Name", each let
+    id = [Coin_id],
+    match = Table.SelectRows(#"User Portfolio Based Crypto Data", each [Coin ID] = id),
+    result = if Table.IsEmpty(match) then null else match{0}[Coin Name]
+in
+    result),
+    #"Changed Type" = Table.TransformColumnTypes(#"Added Custom",{{"Timestamp", type datetime}, {"Open", type number}, {"High", type number}, {"Low", type number}, {"Close", type number}})
+in
+    #"Changed Type"
+
+
+Hourly Market Chart Data -
+let
+    Source = Json.Document(Web.Contents("https://cryptodata-pnzi.onrender.com/get-hourly-market-chart-data")),
+    #"Converted to Table" = Table.FromRecords({Source}),
+    #"Expanded Hourly Market Chart Data" = Table.ExpandListColumn(#"Converted to Table", "Hourly Market Chart Data"),
+    #"Expanded Hourly Market Chart Data1" = Table.ExpandRecordColumn(#"Expanded Hourly Market Chart Data", "Hourly Market Chart Data", {"Coin_id", "Price", "Timestamp"}, {"Hourly Market Chart Data.Coin_id", "Hourly Market Chart Data.Price", "Hourly Market Chart Data.Timestamp"}),
+    #"Changed Type" = Table.TransformColumnTypes(#"Expanded Hourly Market Chart Data1",{{"Hourly Market Chart Data.Coin_id", type text}, {"Hourly Market Chart Data.Price", type number}, {"Hourly Market Chart Data.Timestamp", type datetime}}),
+    #"Renamed Columns" = Table.RenameColumns(#"Changed Type",{{"Hourly Market Chart Data.Coin_id", "Coin_id"}, {"Hourly Market Chart Data.Price", "Price"}, {"Hourly Market Chart Data.Timestamp", "Timestamp"}}),
+    #"Added Custom" = Table.AddColumn(#"Renamed Columns", "Coin Name", each let
+    id = [Coin_id],
+    match = Table.SelectRows(#"User Portfolio Based Crypto Data", each [Coin ID] = id),
+    result = if Table.IsEmpty(match) then null else match{0}[Coin Name]
+in
+    result)
+in
+    #"Added Custom"
+
+
+Yearly Market Chart Data -
+let
+    Source = Json.Document(Web.Contents("https://cryptodata-pnzi.onrender.com/get-yearly-market-chart-data")),
+    #"Converted to Table" = Table.FromRecords({Source}),
+    #"Expanded Yearly Market Chart Data2" = Table.ExpandListColumn(#"Converted to Table", "Yearly Market Chart Data"),
+    #"Expanded Yearly Market Chart Data" = Table.ExpandRecordColumn(#"Expanded Yearly Market Chart Data2", "Yearly Market Chart Data", {"Timestamp", "Coin_id", "Price"}, {"Yearly Market Chart Data.Timestamp", "Yearly Market Chart Data.Coin_id", "Yearly Market Chart Data.Price"}),
+    #"Renamed Columns" = Table.RenameColumns(#"Expanded Yearly Market Chart Data",{{"Yearly Market Chart Data.Timestamp", "Timestamp"}, {"Yearly Market Chart Data.Coin_id", "Coin_id"}, {"Yearly Market Chart Data.Price", "Price"}}),
+    #"Added Custom" = Table.AddColumn(#"Renamed Columns", "Coin Name", each let
+    id = [Coin_id],
+    match = Table.SelectRows(#"User Portfolio Based Crypto Data", each [Coin ID] = id),
+    result = if Table.IsEmpty(match) then null else match{0}[Coin Name]
+in
+    result)
+in
+    #"Added Custom"
+
+
+Yearly Candlestick Data -
+let
+    Source = Json.Document(Web.Contents("https://cryptodata-pnzi.onrender.com/get-yearly-candlestick-data")),
+    #"Converted to Table" = Table.FromRecords({Source}),
+    #"Expanded Yearly Candlestick Data" = Table.ExpandListColumn(#"Converted to Table", "Yearly Candlestick Data"),
+    #"Expanded Yearly Candlestick Data1" = Table.ExpandRecordColumn(#"Expanded Yearly Candlestick Data", "Yearly Candlestick Data", {"Timestamp", "Close", "Coin_id", "High", "Low", "Open"}, {"Yearly Candlestick Data.Timestamp", "Yearly Candlestick Data.Close", "Yearly Candlestick Data.Coin_id", "Yearly Candlestick Data.High", "Yearly Candlestick Data.Low", "Yearly Candlestick Data.Open"}),
+    #"Changed Type" = Table.TransformColumnTypes(#"Expanded Yearly Candlestick Data1",{{"Yearly Candlestick Data.Timestamp", type datetime}, {"Yearly Candlestick Data.Close", type number}, {"Yearly Candlestick Data.Coin_id", type text}, {"Yearly Candlestick Data.High", type number}, {"Yearly Candlestick Data.Low", type number}, {"Yearly Candlestick Data.Open", type number}}),
+    #"Renamed Columns" = Table.RenameColumns(#"Changed Type",{{"Yearly Candlestick Data.Timestamp", "Timestamp"}, {"Yearly Candlestick Data.Close", "Close"}, {"Yearly Candlestick Data.Coin_id", "Coin_id"}, {"Yearly Candlestick Data.High", "High"}, {"Yearly Candlestick Data.Low", "Low"}, {"Yearly Candlestick Data.Open", "Open"}})
+in
+    #"Renamed Columns"
+
+
+News Data -
+let
+    Source = Json.Document(Web.Contents("https://cryptodata-pnzi.onrender.com/get-news-data")),
+    #"Converted to Table" = Record.ToTable(Source),
+    #"Expanded Value" = Table.ExpandListColumn(#"Converted to Table", "Value"),
+    #"Expanded Value1" = Table.ExpandRecordColumn(#"Expanded Value", "Value", {"_id", "author", "category", "coin", "country", "creator", "description", "image_url", "language", "price_6hr_after", "price_at_news", "price_change_pct", "published", "published_dt", "sentiment", "sentiment_score", "source", "title", "url"}, {"Value._id", "Value.author", "Value.category", "Value.coin", "Value.country", "Value.creator", "Value.description", "Value.image_url", "Value.language", "Value.price_6hr_after", "Value.price_at_news", "Value.price_change_pct", "Value.published", "Value.published_dt", "Value.sentiment", "Value.sentiment_score", "Value.source", "Value.title", "Value.url"}),
+    #"Removed Columns" = Table.RemoveColumns(#"Expanded Value1",{"Name", "Value._id", "Value.category", "Value.country", "Value.language"}),
+    #"Renamed Columns" = Table.RenameColumns(#"Removed Columns",{{"Value.author", "Author"}, {"Value.coin", "Coin"}, {"Value.creator", "Creator"}, {"Value.description", "Description"}, {"Value.image_url", "Article Banner/Poster URL"}, {"Value.price_6hr_after", "Price After 6hr"}, {"Value.price_at_news", "Price at News Published"}, {"Value.price_change_pct", "Price Change %"}, {"Value.published", "PublishedAt"}, {"Value.published_dt", "Published dt"}, {"Value.sentiment", "Sentiment"}, {"Value.sentiment_score", "Sentiment Score"}, {"Value.source", "Source"}, {"Value.title", "Title"}, {"Value.url", "Article URL"}}),
+    #"Changed Type" = Table.TransformColumnTypes(#"Renamed Columns",{{"Sentiment Score", type number}, {"Published dt", type datetimezone}, {"PublishedAt", type datetimezone}, {"Price Change %", type number}, {"Price at News Published", type number}, {"Price After 6hr", type number}}),
+    #"Removed Duplicates" = Table.Distinct(#"Changed Type"),
+    #"Removed Duplicates1" = Table.Distinct(#"Removed Duplicates")
+in
+    #"Removed Duplicates1"
+
+
+Reddit Community Data -
+let
+    Source = Json.Document(Web.Contents("https://cryptodata-pnzi.onrender.com/get-reddit-posts")),
+    #"Converted to Table" = Table.FromRecords({Source}),
+    #"Expanded Reddit Posts Data" = Table.ExpandListColumn(#"Converted to Table", "Reddit Posts Data"),
+    #"Expanded Reddit Posts Data1" = Table.ExpandRecordColumn(#"Expanded Reddit Posts Data", "Reddit Posts Data", {"author", "coin", "comments", "created_utc", "permalink", "sentiment_score", "subreddit", "title", "upvotes", "url"}, {"author", "coin", "comments", "created_utc", "permalink", "sentiment_score", "subreddit", "title", "upvotes", "url"}),
+    #"Renamed Columns" = Table.RenameColumns(#"Expanded Reddit Posts Data1",{{"author", "Author"}, {"coin", "Coin"}, {"comments", "Comments"}, {"created_utc", "Posted At (UTC)"}, {"permalink", "Post URL"}, {"sentiment_score", "Sentiment Score"}, {"subreddit", "Subreddit"}, {"title", "Title"}, {"upvotes", "Upvotes"}, {"url", "Thumbnail URL"}}),
+    #"Removed Duplicates" = Table.Distinct(#"Renamed Columns"),
+    #"Removed Duplicates1" = Table.Distinct(#"Removed Duplicates", {"Author", "Title"}),
+    #"Changed Type" = Table.TransformColumnTypes(#"Removed Duplicates1",{{"Posted At (UTC)", type datetime}})
+in
+    #"Changed Type"
+
+
+Develover Detail -
+let
+    Source = Table.FromRows(Json.Document(Binary.Decompress(Binary.FromText("FclBDoIwFIThq5iura/SAg0rWXMEQsz4LEqgQEpJPL7tYhbf/H0v2nWe4qU7PYK4CmTNGbYua6MeH49pufHmU/zGuB8N0ckIjt9rvqnisdDQlSwNnDRGOQljEy2/LIDRFXeSdDAW9+Sw7aSV+qWRGIY/", BinaryEncoding.Base64), Compression.Deflate)), let _t = ((type nullable text) meta [Serialized.Text = true]) in type table [Name = _t, Email = _t, #"Image URL" = _t]),
+    #"Changed Type" = Table.TransformColumnTypes(Source,{{"Name", type text}, {"Email", type text}, {"Image URL", type text}})
+in
+    #"Changed Type"
