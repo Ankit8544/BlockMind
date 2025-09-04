@@ -736,3 +736,4 @@ def Crypto_News_Data():
     except Exception as e:
         send_status_message(Status_TELEGRAM_CHAT_ID, f"❌ Error retrieving NewsAPI data from MongoDB: {e}")
         return {}
+
