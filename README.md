@@ -1,6 +1,8 @@
 # 🚀 BlockMind – The Intelligent CryptoBrain for Every User
 
-BlockMind is a full-stack, AI-driven Power BI analytics solution that helps users track, analyze, and predict the performance of their cryptocurrency portfolio using real-time data, market sentiment, and technical indicators.
+BlockMind is a full-stack, AI-driven Personalized Crypto Portfolio Assets Performance Tracker Power BI analytics solution that helps users to track, analyze, and predict the performance of their cryptocurrency portfolio using real-time data, market sentiment, and technical indicators.
+
+Live Demo: [https://ankit-sharma-07.netlify.app](https://ankit-sharma-07.netlify.app)
 
 🧠 _"It's not just data — it's insight, redefined."_
 
