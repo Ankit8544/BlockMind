@@ -25,16 +25,23 @@ Live Demo: [Power BI Dashboard](https://app.powerbi.com/reportEmbed?reportId=036
 
 ---
 
+Here’s a **fixed, polished version** of your **Overview** section with improved readability, flow, and professional tone:
+
+---
+
 ## 📖 Overview
 
-**BlockMind** allows users to:
-- Add their crypto assets via Power Apps and send coin name, symbol, and purchase date to Flask App using Power Automate and Flask App Add to MongoDB (Free for the first time after that 49 rs per coin)
-- Fetch real-time crypto prices, volatility, and trendlines
-- View AI-generated investment insights
-- Track portfolio returns and performance metrics
-- Analyze news sentiment and Reddit engagement
+**BlockMind** enables users to:
 
-All insights are personalized based on each user's portfolio and powered by a Flask API and MongoDB backend.
+* Register crypto assets through Power Apps (coin name, symbol, purchase date), which are sent via Power Automate to the Flask API and stored in MongoDB. *(Free for the first coin; ₹49 per additional coin)*
+* Collect real-time data such as coin information, market charts, and OHLC (hourly & yearly) from the CoinGecko API, along with news and Reddit sentiment data, and store it in MongoDB.
+* Perform advanced analysis in the Flask backend using Python libraries like **Pandas, NumPy, TextBlob, and TA-Lib**, then save the processed insights back into MongoDB.
+* Expose all data and insights via Flask API endpoints, which are seamlessly connected to Power BI for interactive dashboards.
+* Track portfolio returns, profit/loss, and performance metrics with dynamic KPIs.
+* Analyze crypto market sentiment from **news** and **Reddit** data.
+* Receive automated **daily alerts via a Telegram bot**.
+
+All insights are personalized based on each user’s portfolio and powered by the Flask API + MongoDB backend.
 
 ---
 
