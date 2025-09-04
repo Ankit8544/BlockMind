@@ -47,21 +47,15 @@ All insights are personalized based on each user’s portfolio and powered by th
 
 ## 🏗️ Architecture
 
-[Power Apps]  
-     ↓  
-[Power Automate]  
-     ↓  
-[Flask API (Render)]  
-     ↓  
-[Data Sources: CoinGecko, News API, Reddit]  
-     ↓  
-[MongoDB Atlas]  
-     ↓  
-[Flask API (Render)]  
-     ↓  
-[Power BI Desktop]  
-     ↓  
-[Telegram Bot (Daily Alerts)]
+flowchart LR
+    A[📱 Power Apps] --> B[⚡ Power Automate]
+    B --> C[🌐 Flask API (Render)]
+    C --> D[📊 Data Sources: CoinGecko, News API, Reddit]
+    D --> E[🗄️ MongoDB Atlas]
+    E --> F[🌐 Flask API (Render)]
+    F --> G[📈 Power BI Desktop]
+    F --> H[🤖 Telegram Bot (Daily Alerts)]
+    G --> I[📊 Power BI Service (Dashboard)]
 
 ---
 
