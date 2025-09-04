@@ -40,17 +40,7 @@ All insights are personalized based on each user's portfolio and powered by a Fl
 
 ## 🏗️ Architecture
 
-[Power Apps] ---> [Power Automate] ---> [Flask API (Render)] ---> [MongoDB Atlas]
-                                       |
-                                       v
-                               [Data Sources (CoinGecko, News API, Reddit)]
-                                       |
-                                       v
-                                  [Data in Power BI]
-                                       |
-                                       v
-                               [Power BI Desktop]
-
+[Power Apps] ---> [Power Automate] ---> [Flask API (Render)] ---> [Data Sources (CoinGecko, News API, Reddit)] ---> [MongoDB Atlas] ---> [Flask API (Render)] ---> [Power BI Desktop]
 
 ---
 
@@ -63,7 +53,7 @@ All insights are personalized based on each user's portfolio and powered by a Fl
 | Database         | MongoDB Atlas                  |
 | Automation       | Power Automate                 |
 | Hosting          | Render.com                     |
-| Data Sources     | CoinGecko API, News API        |
+| Data Sources     | CoinGecko API, News API, Reddit API |
 
 ---
 
