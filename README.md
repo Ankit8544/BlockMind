@@ -28,7 +28,7 @@ Live Demo: [Power BI Dashboard](https://app.powerbi.com/reportEmbed?reportId=036
 ## 📖 Overview
 
 **BlockMind** allows users to:
-- Register their crypto assets via Power Apps
+- Add their crypto assets via Power Apps and send coin name, symbol, and purchase date to Flask App using Power Automate and Flask App Add to MongoDB (Free for the first time after that 49 rs per coin)
 - Fetch real-time crypto prices, volatility, and trendlines
 - View AI-generated investment insights
 - Track portfolio returns and performance metrics
@@ -41,8 +41,15 @@ All insights are personalized based on each user's portfolio and powered by a Fl
 ## 🏗️ Architecture
 
 [Power Apps] ---> [Power Automate] ---> [Flask API (Render)] ---> [MongoDB Atlas]
-↘
-[Power BI Desktop]
+                                       |
+                                       v
+                               [Data Sources (CoinGecko, News API, Reddit)]
+                                       |
+                                       v
+                                  [Data in Power BI]
+                                       |
+                                       v
+                               [Power BI Desktop]
 
 
 ---
