@@ -33,8 +33,8 @@ LOG_FILE = 'access.log'
 logging.basicConfig(filename=LOG_FILE, level=logging.INFO)
 
 # 🌐 Set for correct URL generation
-app.config['PREFERRED_URL_SCHEME'] = 'https'
-app.config['SERVER_NAME'] = 'blockmind-cm5s.onrender.com'  # Replace with your actual domain
+app.config['PREFERRED_URL_SCHEME'] = "https"
+app.config['SERVER_NAME'] = "blockmind-cm5s.onrender.com"
 
 # 🔐 Razorpay credentials
 RAZORPAY_KEY = os.getenv('RAZORPAY_KEY')
